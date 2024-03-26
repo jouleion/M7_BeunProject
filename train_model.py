@@ -4,8 +4,29 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 from tensorflow import keras
 from sklearn.model_selection import train_test_split
-
 from tflite_c_converter import convert_tflite_to_c
+
+def plot_input_data(X_train, X_test, y_train, y_test):
+    plt.plot(X_train, y_train, 'b.', label="Train")
+    plt.plot(X_test, y_test, 'y.', label="Test")
+    plt.legend()
+    plt.show()
+
+def get_input_data():
+    X = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    y = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+
+    return X, y
+
+if __name__ == "__main__":
+
+    X, y = get_input_data()
+
+    X_train, X_test, train_test_split(X, y)
+
+
+    plot_input_data(X_train, X_test, y_train, y_test)
+
 
 X = []
 y = []
@@ -16,12 +37,6 @@ y = []
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33)
 X_test, X_vali, y_test, y_vali = train_test_split(X_test, y_test, test_size=0.15)
 
-# Plotting training, testing, and validation data points in blue, yellow, and red respectively,
-# with corresponding labels 'Train', 'Test', 'Valid'
-# plt.plot(X_train, y_train, 'b.', label="Train")
-# plt.plot(X_test, y_test, 'y.', label="Test")
-# plt.legend()
-# plt.show()
 
 # TODO: Add the TensorFlow Keras Sequential model below
 model = keras.Sequential(

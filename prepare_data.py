@@ -1,5 +1,5 @@
 """
-This is used to prepare the microphone data from the J_Wil_son file
+This is used to prepare the microphone data from the Wil_json file
 """
 
 # serial connection
