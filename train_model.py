@@ -6,7 +6,6 @@ from tensorflow import keras
 from sklearn.model_selection import train_test_split
 
 from helpers.tflite_c_converter import convert_tflite_to_c
-from helpers.function_generator import get_function_samples
 
 X, y = get_function_samples(samples=2000)
 X = X.reshape(-1, 1)
