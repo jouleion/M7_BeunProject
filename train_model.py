@@ -5,10 +5,12 @@ import tensorflow as tf
 from tensorflow import keras
 from sklearn.model_selection import train_test_split
 
-from helpers.tflite_c_converter import convert_tflite_to_c
+from tflite_c_converter import convert_tflite_to_c
 
-X, y = get_function_samples(samples=2000)
-X = X.reshape(-1, 1)
+X = []
+y = []
+
+# X = X.reshape(-1, 1)
 
 # TODO: Split the data into training and testing sets below
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33)
