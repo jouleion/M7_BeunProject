@@ -2,7 +2,7 @@
 #include "arduinoFFT.h"
 
 #define SAMPLE_BUFFER_SIZE 512
-#define SAMPLE_RATE 8000
+#define SAMPLE_RATE 1000
 
 #include "mic_header.h"
 
@@ -46,8 +46,30 @@ void loop(){
   // read from the I2S device
   size_t bytes_read = 0;
   i2s_read(I2S_NUM_0, raw_samples, sizeof(int32_t) * SAMPLE_BUFFER_SIZE, &bytes_read, portMAX_DELAY);
-  
   int samples_read = bytes_read / sizeof(int32_t);
+
+  for(int i = 0; i < SAMPLE_BUFFER_SIZE; i++){
+    // reduce amplitude of signal
+    raw_samples[i] = raw_samples[i] >> 8; 
+  }
+  
+  // do ftt for each buffer
+  fft_doemaar(samples_read);
+
+  for(int i = 0; i < 255; i++){
+    Serial.print("");
+
+    // print standard height line
+    Serial.print(10000000);
+    Serial.print((i * 1.0 * SAMPLE_RATE) / SAMPLE_BUFFER_SIZE);
+    Serial.print("Hz");
+    Serial.print(" ");
+    Serial.println(0, 4);
+  }
+
+  delay(500);
+
+
   
   // dump the samples out to the serial channel.
 //  for (int i = 0; i < samples_read; i++){
@@ -64,9 +86,9 @@ void loop(){
 //  }
 
   //on button press
-  if(read_button(pin_button1)){
-    fft_doemaar(samples_read);
-  }
+//  if(read_button(pin_button1)){
+//    fft_doemaar(samples_read);
+//  }
 }
 
 void fft_doemaar(int samples_read){
@@ -77,25 +99,31 @@ void fft_doemaar(int samples_read){
   }  
   
   /* Print the results of the simulated sampling according to time */
-  Serial.println("Data:");
-  PrintVector(vReal, SAMPLE_BUFFER_SIZE, SCL_TIME);
+//  Serial.println("Data:");
+//  PrintVector(vReal, SAMPLE_BUFFER_SIZE, SCL_TIME);
+  
   FFT.windowing(FFTWindow::Hamming, FFTDirection::Forward);  /* Weigh data */
   
-  Serial.println("Weighed data:");
-  PrintVector(vReal, SAMPLE_BUFFER_SIZE, SCL_TIME);
+//  Serial.println("Weighed data:");
+//  PrintVector(vReal, SAMPLE_BUFFER_SIZE, SCL_TIME);
+  
   FFT.compute(FFTDirection::Forward); /* Compute FFT */
   
-  Serial.println("Computed Real values:");
-  PrintVector(vReal, SAMPLE_BUFFER_SIZE, SCL_INDEX);
-  Serial.println("Computed Imaginary values:");
-  PrintVector(vImag, SAMPLE_BUFFER_SIZE, SCL_INDEX);
+//  Serial.println("Computed Real values:");
+//  PrintVector(vReal, SAMPLE_BUFFER_SIZE, SCL_INDEX);
+//  Serial.println("Computed Imaginary values:");
+//  PrintVector(vImag, SAMPLE_BUFFER_SIZE, SCL_INDEX);
+
+
   FFT.complexToMagnitude(); /* Compute magnitudes */
+
   
-  Serial.println("Computed magnitudes:");
   PrintVector(vReal, (SAMPLE_BUFFER_SIZE >> 1), SCL_FREQUENCY);
-  double x = FFT.majorPeak();
-  Serial.println(x, 6);
-  while(1); /* Run Once */  
+  
+//  double x = FFT.majorPeak();
+//  Serial.println(x, 6);
+
+  //while(1); /* Run Once */  
 
 }
 bool read_button(int pin){
@@ -112,22 +140,24 @@ bool read_button(int pin){
 }
 void PrintVector(double *vData, uint16_t bufferSize, uint8_t scaleType)
 {
-  for (uint16_t i = 0; i < bufferSize; i++)
-  {
+  for (uint16_t i = 0; i < bufferSize; i++){
     double abscissa;
     /* Print abscissa value */
-    switch (scaleType)
-    {
+    switch (scaleType){
       case SCL_INDEX:
         abscissa = (i * 1.0);
-  break;
+        break;
       case SCL_TIME:
         abscissa = ((i * 1.0) / SAMPLE_RATE);
-  break;
+        break;
       case SCL_FREQUENCY:
         abscissa = ((i * 1.0 * SAMPLE_RATE) / SAMPLE_BUFFER_SIZE);
-  break;
+        break;
     }
+    // print standard height line
+    Serial.print(10000000);
+    Serial.print(",");
+    
     Serial.print(abscissa, 6);
     if(scaleType==SCL_FREQUENCY)
       Serial.print("Hz");
