@@ -1,31 +1,37 @@
 #include <driver/i2s.h>
 #include "arduinoFFT.h"
 
-#define SAMPLE_BUFFER_SIZE 512
-#define SAMPLE_RATE 1000
-
-#include "mic_header.h"
-
+// pin def
 #define pin_button1 0
 #define pin_button2 47
 #define pin_led 17
 
+// some timing for fft
 #define SCL_INDEX 0x00
 #define SCL_TIME 0x01
 #define SCL_FREQUENCY 0x02
 #define SCL_PLOT 0x03
 
+// buffer for fft
+#define SAMPLE_BUFFER_SIZE 256
+#define SAMPLE_RATE 8000
+#define N_O_SAMPLES 10
+
+// cool mic initialisation!
+#include "mic_header.h"
+
 // real and imaginary components
 double vReal[SAMPLE_BUFFER_SIZE];
 double vImag[SAMPLE_BUFFER_SIZE];
 
+// mic buffer
+int32_t raw_samples[SAMPLE_BUFFER_SIZE];
+//int32_t spectogram[SAMPLE_BUFFER_SIZE][N_O_SAMPLES];
 
-
-/* Create FFT object */
+// Create FFT object
 ArduinoFFT<double> FFT = ArduinoFFT<double>(vReal, vImag, SAMPLE_BUFFER_SIZE, SAMPLE_RATE);
 
-void setup()
-{
+void setup(){
   // we need serial output for the plotter
   Serial.begin(115200);
   Serial.print("Hi");
@@ -40,91 +46,87 @@ void setup()
   i2s_set_pin(I2S_NUM_0, &i2s_mic_pins);
 }
 
-int32_t raw_samples[SAMPLE_BUFFER_SIZE];
-
+int iterations = 0;
 void loop(){
-  // read from the I2S device
-  size_t bytes_read = 0;
-  i2s_read(I2S_NUM_0, raw_samples, sizeof(int32_t) * SAMPLE_BUFFER_SIZE, &bytes_read, portMAX_DELAY);
-  int samples_read = bytes_read / sizeof(int32_t);
-
-  for(int i = 0; i < SAMPLE_BUFFER_SIZE; i++){
-    // reduce amplitude of signal
-    raw_samples[i] = raw_samples[i] >> 8; 
-  }
   
-  // do ftt for each buffer
-  fft_doemaar(samples_read);
-
-  for(int i = 0; i < 255; i++){
-    Serial.print("");
-
-    // print standard height line
-    Serial.print(10000000);
-    Serial.print((i * 1.0 * SAMPLE_RATE) / SAMPLE_BUFFER_SIZE);
-    Serial.print("Hz");
-    Serial.print(" ");
-    Serial.println(0, 4);
-  }
-
-  delay(500);
-
-
+  if(iterations < N_O_SAMPLES || true){
+    // read from the I2S device
+    size_t bytes_read = 0;
+    i2s_read(I2S_NUM_0, raw_samples, sizeof(int32_t) * SAMPLE_BUFFER_SIZE, &bytes_read, portMAX_DELAY);
+    int samples_read = bytes_read / sizeof(int32_t);
   
-  // dump the samples out to the serial channel.
-//  for (int i = 0; i < samples_read; i++){
-//    Serial.print(100000000);
-//    Serial.printf(",");
-//    Serial.print(20000000);
-//    Serial.printf(",");
-//    Serial.print(-20000000);
-//    Serial.printf(",");
-//    Serial.print(-100000000);
-//    Serial.printf(",");
-//    Serial.printf("%ld\n", raw_samples[i]);
+    for(int i = 0; i < SAMPLE_BUFFER_SIZE; i++){
+      // reduce amplitude of signal
+      raw_samples[i] = raw_samples[i] >> 16; 
+    }
+    
+    // do ftt for read buffer -> stores in vReal and vImag
+    do_fft(samples_read);
+
+    //dont send last 50 entries because of errors
+    for(uint16_t i = 0; i < SAMPLE_BUFFER_SIZE - 50; i++){
+      // print time
+      Serial.print(80000);
+//      Serial.print(",");
+//      Serial.print(i * 1.0 * SAMPLE_RATE / SAMPLE_BUFFER_SIZE);
+      Serial.print(",");
+      // print height of FFT. round to 4th decimal
+      Serial.println(vReal[i], 2);
+    }
+//  
+      Serial.print(0);
+      Serial.print(",");  
+      Serial.println(0);
+
+    for(uint16_t i = 0; i < SAMPLE_BUFFER_SIZE; i++){
+      Serial.print(0);
+      Serial.print(",");  
+      Serial.println(0, 2);
+    }
 //    
-//  }
-
-  //on button press
-//  if(read_button(pin_button1)){
-//    fft_doemaar(samples_read);
-//  }
+//    for(int j = 0; j < SAMPLE_BUFFER_SIZE; j++){
+//      spectogram[iterations][j] = vReal[j];
+//    }
+    iterations += 1;
+//
+//    for(int j = 0; j < SAMPLE_BUFFER_SIZE; j++){
+//      Serial.print(spectogram[iterations][j]);
+//    }
+//    Serial.println();
+  }
+  delay(300);
 }
 
-void fft_doemaar(int samples_read){
+void send_microphone_data(int samples_read){
+  //print all samples of the mic reading. send constant heigth bars for arduino plotter to have better magnitude read
+  for (int i = 0; i < samples_read; i++){
+    Serial.print(100000000);
+    Serial.printf(",");
+    Serial.print(20000000);
+    Serial.printf(",");
+    Serial.print(-20000000);
+    Serial.printf(",");
+    Serial.print(-100000000);
+    Serial.printf(",");
+    Serial.printf("%ld\n", raw_samples[i]);
+  }
+}
+
+void do_fft(int samples_read){
   // prepare data
   for (int i = 0; i < samples_read; i++){
       vReal[i] = raw_samples[i];
       vImag[i] = 0;
   }  
-  
-  /* Print the results of the simulated sampling according to time */
-//  Serial.println("Data:");
-//  PrintVector(vReal, SAMPLE_BUFFER_SIZE, SCL_TIME);
-  
-  FFT.windowing(FFTWindow::Hamming, FFTDirection::Forward);  /* Weigh data */
-  
-//  Serial.println("Weighed data:");
-//  PrintVector(vReal, SAMPLE_BUFFER_SIZE, SCL_TIME);
-  
-  FFT.compute(FFTDirection::Forward); /* Compute FFT */
-  
-//  Serial.println("Computed Real values:");
-//  PrintVector(vReal, SAMPLE_BUFFER_SIZE, SCL_INDEX);
-//  Serial.println("Computed Imaginary values:");
-//  PrintVector(vImag, SAMPLE_BUFFER_SIZE, SCL_INDEX);
 
+  //weigh data
+  FFT.windowing(FFTWindow::Hamming, FFTDirection::Forward);
+  // compute FFT
+  FFT.compute(FFTDirection::Forward);
+  // compute magnitudes
+  FFT.complexToMagnitude();
 
-  FFT.complexToMagnitude(); /* Compute magnitudes */
-
-  
-  PrintVector(vReal, (SAMPLE_BUFFER_SIZE >> 1), SCL_FREQUENCY);
-  
-//  double x = FFT.majorPeak();
-//  Serial.println(x, 6);
-
-  //while(1); /* Run Once */  
-
+  //PrintVector(vReal, (SAMPLE_BUFFER_SIZE >> 1), SCL_FREQUENCY);
 }
 bool read_button(int pin){
   if (!digitalRead(pin)) {
@@ -166,3 +168,15 @@ void PrintVector(double *vData, uint16_t bufferSize, uint8_t scaleType)
   }
   Serial.println();
 }
+
+// this was used to send empty line after fft has been send, didnt work great?
+//   for(int i = 0; i < 255; i++){
+//     Serial.print("");
+//
+//     // print standard height line
+//     Serial.print(10000000);
+//     Serial.print((i * 1.0 * SAMPLE_RATE) / SAMPLE_BUFFER_SIZE);
+//     Serial.print("Hz");
+//     Serial.print(",");
+//     Serial.println(0, 4);
+//   }
