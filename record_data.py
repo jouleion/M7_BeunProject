@@ -44,31 +44,61 @@ def read_serial():
 
     return times, fft_values
 
+def read_spectrogram():
+    """
+    Spectrogram image is send over serial from Wilson
+    spectrogram[128][256]
+    This function reads incomming data and returns the spectrogram image
+    """
+    # should use np.zeros[][]
+    spectrogram = [128][256]
+
+    # Read and decode the incoming data
+    pixel = arduino_serial.readline().decode().strip()
+
+    if(pixel == "s"):
+        end_of_image = False
+        while not end_of_image:
+            # Read and decode the incoming data
+            pixel = arduino_serial.readline().decode().strip()
+
+            # when end signal is recieved, stop reading
+            if(pixel == "e"):
+                end_of_image = True
+
+            # split data at ","
+            # store pixel at correct coordinate in np.array
+
+    return spectrogram
+
+
 if __name__ == "__main__":
     while True:
-        # if arduino_serial.is_open:
-        times, fft_values = read_serial()
-        print(times)
-        print(fft_values)
+        read_spectrogram()
+        # # if arduino_serial.is_open:
+        # times, fft_values = read_serial()
+        # print(times)
+        # print(fft_values)
+        #
+        # #plot values
+        # x = np.array(times)
+        # y = np.array(fft_values)
+        #
+        # # Convert values to float
+        # x = list(map(float, x))
+        # y = list(map(float, y))
+        #
+        # # Plot the data
+        # plt.plot(x, y)
+        #
+        # # Add labels and title
+        # plt.xlabel('frequency')
+        # plt.ylabel('magnitude')
+        # plt.title('Wilson FFT')
+        #
+        # # Display the plot
+        # plt.show()
 
-        #plot values
-        x = np.array(times)
-        y = np.array(fft_values)
-
-        # Convert values to float
-        x = list(map(float, x))
-        y = list(map(float, y))
-
-        # Plot the data
-        plt.plot(x, y)
-
-        # Add labels and title
-        plt.xlabel('frequency')
-        plt.ylabel('magnitude')
-        plt.title('Wilson FFT')
-
-        # Display the plot
-        plt.show()
 
 
 # save to json
