@@ -1,3 +1,6 @@
+// just shows the fft over time
+// please work further in microphone processed
+
 #include <driver/i2s.h>
 #include "arduinoFFT.h"
 
@@ -13,34 +16,20 @@
 #define SCL_PLOT 0x03
 
 // buffer for fft
-// this should be a power of 2 i believe
 #define SAMPLE_BUFFER_SIZE 256
 #define SAMPLE_RATE 8000
+#define N_O_SAMPLES 10
 
-// this makes a 256x128 pixel image = 32 KB
-#define N_O_SAMPLES 128
-
-// cool mic initialisation! -> requires sample rate
+// cool mic initialisation!
 #include "mic_header.h"
 
-// Buffer should be read as follows:
-// save at index i = 0
-// increment index.
-// read buffer starting from index to indicate starting position. 
-
-// do we use floats, doubles or ints?
-float spectogram[N_O_SAMPLES][SAMPLE_BUFFER_SIZE];
-
-// keep track of current spectogram index
-int spectogram_index = 0;
-
-// real and imaginary components    -> could be turned into floats
+// real and imaginary components
 double vReal[SAMPLE_BUFFER_SIZE];
 double vImag[SAMPLE_BUFFER_SIZE];
 
 // mic buffer
 int32_t raw_samples[SAMPLE_BUFFER_SIZE];
-
+//int32_t spectogram[SAMPLE_BUFFER_SIZE][N_O_SAMPLES];
 
 // Create FFT object
 ArduinoFFT<double> FFT = ArduinoFFT<double>(vReal, vImag, SAMPLE_BUFFER_SIZE, SAMPLE_RATE);
@@ -48,101 +37,72 @@ ArduinoFFT<double> FFT = ArduinoFFT<double>(vReal, vImag, SAMPLE_BUFFER_SIZE, SA
 void setup(){
   // we need serial output for the plotter
   Serial.begin(115200);
-  
+  Serial.print("Hi");
   pinMode(pin_led, OUTPUT);
   digitalWrite(pin_led, HIGH);
 
   //button
   pinMode(pin_button1, INPUT_PULLUP);
-  
+
   // start up the I2S peripheral
   i2s_driver_install(I2S_NUM_0, &i2s_config, 0, NULL);
   i2s_set_pin(I2S_NUM_0, &i2s_mic_pins);
 }
 
+int iterations = 0;
 void loop(){
-    // read read_microphone data, store in raw_samples
-    read_microphone();
 
-    // do ftt for read buffer -> stores in vReal
-    do_fft();
-
-    // save vReal into spectogram as correct index
-    write_to_spectogram(vReal, spectogram_index);
-
-    // send spectogram when buffer is filled
-    if(spectogram_index == 0){
-        send_spectrogram();
-    }
-
-    // option to send the microphone data
-    // send_microphone_data();
-
-    // short delay to prevent esp from exploding, maybe?
-    delay(20);
-}
-
-void read_microphone(){
+  if(iterations < N_O_SAMPLES || true){
     // read from the I2S device
     size_t bytes_read = 0;
     i2s_read(I2S_NUM_0, raw_samples, sizeof(int32_t) * SAMPLE_BUFFER_SIZE, &bytes_read, portMAX_DELAY);
     int samples_read = bytes_read / sizeof(int32_t);
 
-    // reduce amplitude of signal
     for(int i = 0; i < SAMPLE_BUFFER_SIZE; i++){
+      // reduce amplitude of signal
       raw_samples[i] = raw_samples[i] >> 16;
     }
-}
 
-void do_fft(){
-  // prepare data
-  for (int i = 0; i < SAMPLE_BUFFER_SIZE; i++){
-      vReal[i] = raw_samples[i];
-      vImag[i] = 0;
-  }
+    // do ftt for read buffer -> stores in vReal and vImag
+    do_fft(samples_read);
 
-  //weigh data
-  FFT.windowing(FFTWindow::Hamming, FFTDirection::Forward);
-  // compute FFT
-  FFT.compute(FFTDirection::Forward);
-  // compute magnitudes
-  FFT.complexToMagnitude();
-}
-
-void write_to_spectogram(double frequency_data[], int index){
-  // at starting index of the spectogram we write the data
-  // then increment the index -> do this in dedicated function
-  increment_spectogram_index();
-
-  // store each frequency_data point
-  for(int i = 0; i < sizeof(frequency_data); i++){
-    spectogram[spectogram_index][i] = (float)frequency_data[i];
-  }
-}
-
-void increment_spectogram_index(){
-    // increment the spectogram_index
-    spectogram_index += 1;
-    // spectogram_index should not be greater than the number of samples    -> check for fenchpost error
-    if(spectogram_index > N_O_SAMPLES - 1){
-        spectogram_index = 0;
+    //dont send last 50 entries because of errors
+    for(uint16_t i = 0; i < SAMPLE_BUFFER_SIZE - 50; i++){
+      // print time
+      Serial.print(80000);
+//      Serial.print(",");
+//      Serial.print(i * 1.0 * SAMPLE_RATE / SAMPLE_BUFFER_SIZE);
+      Serial.print(",");
+      // print height of FFT. round to 4th decimal
+      Serial.println(vReal[i], 2);
     }
-}
+//
+      Serial.print(0);
+      Serial.print(",");
+      Serial.println(0);
 
-void send_spectrogram(){
-    for(uint16_t i = 0; i < N_O_SAMPLES; i++){
-        for(uint16_t j = 0; j < SAMPLE_BUFFER_SIZE - 50; j++){
-            // send pixel data, from top left going through the lines
-            Serial.print(i);
-            Serial.print(",");
-            Serial.println(spectogram[i][j]);
-        }
+    for(uint16_t i = 0; i < SAMPLE_BUFFER_SIZE; i++){
+      Serial.print(0);
+      Serial.print(",");
+      Serial.println(0, 2);
     }
+//
+//    for(int j = 0; j < SAMPLE_BUFFER_SIZE; j++){
+//      spectogram[iterations][j] = vReal[j];
+//    }
+    iterations += 1;
+//
+//    for(int j = 0; j < SAMPLE_BUFFER_SIZE; j++){
+//      Serial.print(spectogram[iterations][j]);
+//    }
+//    Serial.println();
+  }
+  delay(300);
 }
 
-void send_microphone_data(){
+void send_microphone_data(int samples_read){
   //print all samples of the mic reading. send constant heigth bars for arduino plotter to have better magnitude read
-  for (int i = 0; i < SAMPLE_BUFFER_SIZE; i++){
+  for (int i = 0; i < samples_read; i++){
     Serial.print(100000000);
     Serial.printf(",");
     Serial.print(20000000);
@@ -155,6 +115,22 @@ void send_microphone_data(){
   }
 }
 
+void do_fft(int samples_read){
+  // prepare data
+  for (int i = 0; i < samples_read; i++){
+      vReal[i] = raw_samples[i];
+      vImag[i] = 0;
+  }
+
+  //weigh data
+  FFT.windowing(FFTWindow::Hamming, FFTDirection::Forward);
+  // compute FFT
+  FFT.compute(FFTDirection::Forward);
+  // compute magnitudes
+  FFT.complexToMagnitude();
+
+  //PrintVector(vReal, (SAMPLE_BUFFER_SIZE >> 1), SCL_FREQUENCY);
+}
 bool read_button(int pin){
   if (!digitalRead(pin)) {
     int sum = 0;
@@ -167,35 +143,34 @@ bool read_button(int pin){
   }
   return false;
 }
+void PrintVector(double *vData, uint16_t bufferSize, uint8_t scaleType)
+{
+  for (uint16_t i = 0; i < bufferSize; i++){
+    double abscissa;
+    /* Print abscissa value */
+    switch (scaleType){
+      case SCL_INDEX:
+        abscissa = (i * 1.0);
+        break;
+      case SCL_TIME:
+        abscissa = ((i * 1.0) / SAMPLE_RATE);
+        break;
+      case SCL_FREQUENCY:
+        abscissa = ((i * 1.0 * SAMPLE_RATE) / SAMPLE_BUFFER_SIZE);
+        break;
+    }
+    // print standard height line
+    Serial.print(10000000);
+    Serial.print(",");
 
-// void PrintVector(double *vData, uint16_t bufferSize, uint8_t scaleType)
-// {
-//   for (uint16_t i = 0; i < bufferSize; i++){
-//     double abscissa;
-//     /* Print abscissa value */
-//     switch (scaleType){
-//       case SCL_INDEX:
-//         abscissa = (i * 1.0);
-//         break;
-//       case SCL_TIME:
-//         abscissa = ((i * 1.0) / SAMPLE_RATE);
-//         break;
-//       case SCL_FREQUENCY:
-//         abscissa = ((i * 1.0 * SAMPLE_RATE) / SAMPLE_BUFFER_SIZE);
-//         break;
-//     }
-//     // print standard height line
-//     Serial.print(10000000);
-//     Serial.print(",");
-//
-//     Serial.print(abscissa, 6);
-//     if(scaleType==SCL_FREQUENCY)
-//       Serial.print("Hz");
-//     Serial.print(" ");
-//     Serial.println(vData[i], 4);
-//   }
-//   Serial.println();
-// }
+    Serial.print(abscissa, 6);
+    if(scaleType==SCL_FREQUENCY)
+      Serial.print("Hz");
+    Serial.print(" ");
+    Serial.println(vData[i], 4);
+  }
+  Serial.println();
+}
 
 // this was used to send empty line after fft has been send, didnt work great?
 //   for(int i = 0; i < 255; i++){

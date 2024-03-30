@@ -14,10 +14,11 @@
 
 // buffer for fft
 // this should be a power of 2 i believe
-#define SAMPLE_BUFFER_SIZE 256
+#define SAMPLE_BUFFER_SIZE 128
 #define SAMPLE_RATE 8000
 
 // this makes a 256x128 pixel image = 32 KB
+// 128x128 = 16KB
 #define N_O_SAMPLES 128
 
 // cool mic initialisation! -> requires sample rate
@@ -35,15 +36,15 @@ float spectogram[N_O_SAMPLES][SAMPLE_BUFFER_SIZE];
 int spectogram_index = 0;
 
 // real and imaginary components    -> could be turned into floats
-double vReal[SAMPLE_BUFFER_SIZE];
-double vImag[SAMPLE_BUFFER_SIZE];
+float vReal[SAMPLE_BUFFER_SIZE];
+float vImag[SAMPLE_BUFFER_SIZE];
 
 // mic buffer
 int32_t raw_samples[SAMPLE_BUFFER_SIZE];
 
 
 // Create FFT object
-ArduinoFFT<double> FFT = ArduinoFFT<double>(vReal, vImag, SAMPLE_BUFFER_SIZE, SAMPLE_RATE);
+ArduinoFFT<float> FFT = ArduinoFFT<float>(vReal, vImag, SAMPLE_BUFFER_SIZE, SAMPLE_RATE);
 
 void setup(){
   // we need serial output for the plotter
@@ -62,10 +63,10 @@ void setup(){
 
 void loop(){
     // read read_microphone data, store in raw_samples
-    read_microphone();
+    int n_read_samples = read_microphone();
 
     // do ftt for read buffer -> stores in vReal
-    do_fft();
+    do_fft(n_read_samples);
 
     // save vReal into spectogram as correct index
     write_to_spectogram(vReal, spectogram_index);
@@ -73,16 +74,17 @@ void loop(){
     // send spectogram when buffer is filled
     if(spectogram_index == 0){
         send_spectrogram();
+        //test_python();
     }
 
     // option to send the microphone data
     // send_microphone_data();
 
     // short delay to prevent esp from exploding, maybe?
-    delay(20);
+    delay(1);
 }
 
-void read_microphone(){
+int read_microphone(){
     // read from the I2S device
     size_t bytes_read = 0;
     i2s_read(I2S_NUM_0, raw_samples, sizeof(int32_t) * SAMPLE_BUFFER_SIZE, &bytes_read, portMAX_DELAY);
@@ -90,13 +92,17 @@ void read_microphone(){
 
     // reduce amplitude of signal
     for(int i = 0; i < SAMPLE_BUFFER_SIZE; i++){
-      raw_samples[i] = raw_samples[i] >> 16;
+      raw_samples[i] = raw_samples[i];
     }
+    return samples_read;
 }
 
-void do_fft(){
-  // prepare data
+void do_fft(int n_read_samples){
   for (int i = 0; i < SAMPLE_BUFFER_SIZE; i++){
+      vReal[i] = 0;
+  }
+  // prepare data
+  for (int i = 0; i < n_read_samples; i++){
       vReal[i] = raw_samples[i];
       vImag[i] = 0;
   }
@@ -109,14 +115,14 @@ void do_fft(){
   FFT.complexToMagnitude();
 }
 
-void write_to_spectogram(double frequency_data[], int index){
+void write_to_spectogram(float frequency_data[], int index){
   // at starting index of the spectogram we write the data
   // then increment the index -> do this in dedicated function
   increment_spectogram_index();
 
   // store each frequency_data point
   for(int i = 0; i < sizeof(frequency_data); i++){
-    spectogram[spectogram_index][i] = (float)frequency_data[i];
+    spectogram[spectogram_index][i] = frequency_data[i];
   }
 }
 
@@ -130,14 +136,28 @@ void increment_spectogram_index(){
 }
 
 void send_spectrogram(){
-    for(uint16_t i = 0; i < N_O_SAMPLES; i++){
-        for(uint16_t j = 0; j < SAMPLE_BUFFER_SIZE - 50; j++){
+    Serial.println("s");
+    for(int i = 0; i < N_O_SAMPLES; i++){
+        for(int j = 0; j < SAMPLE_BUFFER_SIZE; j++){
             // send pixel data, from top left going through the lines
             Serial.print(i);
             Serial.print(",");
-            Serial.println(spectogram[i][j]);
+            Serial.println(int(spectogram[i][j]));
         }
     }
+    Serial.println("e");
+}
+void test_python(){
+    Serial.println("s");
+    for(int i = 0; i < N_O_SAMPLES; i++){
+        for(int j = 0; j < SAMPLE_BUFFER_SIZE; j++){
+            // send pixel data, from top left going through the lines
+            Serial.print(i);
+            Serial.print(",");
+            Serial.println(i * j);
+        }
+    }
+    Serial.println("e");  
 }
 
 void send_microphone_data(){

@@ -10,6 +10,7 @@ import serial
 import time
 import numpy as np
 import matplotlib.pyplot as plt
+import re
 
 arduino_serial = serial.Serial(port='COM5',  baudrate=115200, timeout=0.1)
 
@@ -44,37 +45,71 @@ def read_serial():
 
     return times, fft_values
 
+def remove_letters(input_string):
+    return re.sub("[^0-9]", "", input_string)
+
 def read_spectrogram():
-    """
-    Spectrogram image is send over serial from Wilson
-    spectrogram[128][256]
-    This function reads incomming data and returns the spectrogram image
-    """
-    # should use np.zeros[][]
-    spectrogram = [128][256]
+    # Initialize a numpy array filled with zeros
+    spectrogram = np.zeros((128, 128))
+    #spectrogram[100, 20] = 1
 
-    # Read and decode the incoming data
-    pixel = arduino_serial.readline().decode().strip()
-
-    if(pixel == "s"):
+    if arduino_serial.is_open:
         end_of_image = False
+        start_of_image = True
+        column_index = 0
+        last_row = 0
+
         while not end_of_image:
             # Read and decode the incoming data
             pixel = arduino_serial.readline().decode().strip()
 
-            # when end signal is recieved, stop reading
-            if(pixel == "e"):
-                end_of_image = True
+            if pixel:
+                print(pixel)
+                if pixel == "s":
+                    start_of_image = True
+                    print("start of image")
+                    end_of_image = False
+                    continue
 
-            # split data at ","
-            # store pixel at correct coordinate in np.array
+                if start_of_image:
+                    if pixel == "e":
+                        print("end of image")
+                        end_of_image = True
+                        continue
 
+                    if "," in pixel:
+                        # split image at ","
+                        row, frequency_strength = pixel.split(",")
+                        row = remove_letters(row)
+                        frequency_strength = remove_letters(frequency_strength)
+
+                        if row != last_row:
+                            # Reset index for column when a new row is send
+                            column_index = 0
+
+                        #print(frequency_strength)
+
+                        # Store pixel at correct coordinate in np.array
+                        spectrogram[int(row)][column_index] = frequency_strength
+                        column_index += 1
+                        last_row = row
+
+                else:
+                    end_of_image = True
+
+    # normalize spectrogram using min max scaling
+    min_val = np.min(spectrogram)
+    max_val = np.max(spectrogram)
+    spectrogram = (spectrogram - min_val) / (max_val - min_val + 0.01)
+
+    # return the spectrogram
     return spectrogram
 
 
 if __name__ == "__main__":
     while True:
-        read_spectrogram()
+        spectrogram = read_spectrogram()
+        #print(spectrogram)
         # # if arduino_serial.is_open:
         # times, fft_values = read_serial()
         # print(times)
@@ -88,17 +123,21 @@ if __name__ == "__main__":
         # x = list(map(float, x))
         # y = list(map(float, y))
         #
-        # # Plot the data
-        # plt.plot(x, y)
-        #
-        # # Add labels and title
-        # plt.xlabel('frequency')
-        # plt.ylabel('magnitude')
-        # plt.title('Wilson FFT')
-        #
-        # # Display the plot
-        # plt.show()
 
+        # Plot the data
+        # Function to show the heat map
+
+        plt.imshow(np.transpose(spectrogram), cmap='viridis')
+        plt.colorbar()
+
+        # Adding details to the plot
+        plt.title("Spectrogram")
+        plt.xlabel('x-axis')
+        plt.ylabel('y-axis')
+
+        # Displaying the plot
+        plt.show()
+        exit()
 
 
 # save to json
