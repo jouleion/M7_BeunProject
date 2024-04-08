@@ -1,5 +1,8 @@
 """
 This is used to record the microphone data from Wilson
+either as a spectrogram or as an audio array
+
+
 
 following this tutorial to fetch serial data:
 https://projecthub.arduino.cc/ansh2919/serial-communication-between-python-and-arduino-663756
@@ -14,6 +17,8 @@ import re
 import cv2
 import os
 
+
+# set true when tiny ml is conected
 tiny_ml_connected = False
 
 if tiny_ml_connected:
@@ -63,7 +68,7 @@ def read_spectrogram():
     spectrogram = np.zeros((128, 128))
     #spectrogram[100, 20] = 1
 
-    if arduino_serial.is_open:
+    if tiny_ml_serial.is_open:
         end_of_image = False
         start_of_image = True
         column_index = 0
