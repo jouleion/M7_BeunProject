@@ -11,19 +11,28 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 import re
+import cv2
+import os
 
-arduino_serial = serial.Serial(port='COM5',  baudrate=115200, timeout=0.1)
+tiny_ml_connected = False
+
+if tiny_ml_connected:
+    tiny_ml_serial = serial.Serial(port='COM5',  baudrate=115200, timeout=0.1)
 
 
 def read_serial():
     times = []
     fft_values = []
 
-    ended = False
+    if tiny_ml_connected:
+        ended = False
+    else:
+        ended = True
+        print("Please connect Tiny Ml board")
 
     while not ended:
         # Read and decode the incoming data
-        data = arduino_serial.readline().decode().strip()
+        data = tiny_ml_serial.readline().decode().strip()
 
         # Check if data is not empty
         if data:
@@ -50,6 +59,7 @@ def remove_letters(input_string):
 
 def read_spectrogram():
     # Initialize a numpy array filled with zeros
+    # N_O_SAMPLES, SAMPLE_BUFFER_SIZE
     spectrogram = np.zeros((128, 128))
     #spectrogram[100, 20] = 1
 
@@ -61,7 +71,7 @@ def read_spectrogram():
 
         while not end_of_image:
             # Read and decode the incoming data
-            pixel = arduino_serial.readline().decode().strip()
+            pixel = tiny_ml_serial.readline().decode().strip()
 
             if pixel:
                 print(pixel)
@@ -100,15 +110,61 @@ def read_spectrogram():
     # normalize spectrogram using min max scaling
     min_val = np.min(spectrogram)
     max_val = np.max(spectrogram)
-    spectrogram = (spectrogram - min_val) / (max_val - min_val + 0.01)
+    spectrogram = (spectrogram - min_val) / (max_val - 50 - min_val + 0.01)
 
     # return the spectrogram
     return spectrogram
 
+def save_spectrogram_blind(spectrogram):
+    cv2.imwrite("spectrogram_001.png", spectrogram)
+
+def save_spectrogram(spectrogram, data_path, keyword_id):
+    # save spectrogram in correct folder depending on the keyword id thats being used
+
+    # put in right subfolder
+    subfolder_path = os.path.join(data_path, str(keyword_id))
+
+    # make subfolder if it did not exsist yet
+    if not os.path.exists(subfolder_path):
+        os.makedirs(subfolder_path)
+
+    # Find the highest existing index and generate a new file name
+    existing_files = os.listdir(subfolder_path)
+    max_index = 0
+    for file in existing_files:
+        if file.startswith("spectrogram_") and file.endswith(".png"):
+            try:
+                index = int(file.split("_")[1].split(".")[0])
+                max_index = max(max_index, index)
+            except ValueError:
+                pass
+
+    new_index = max_index + 1
+    # make new name with 3 leading zeros
+    new_filename = f"spectrogram_{new_index:03d}.png"
+    new_file_path = os.path.join(subfolder_path, new_filename)
+
+    # Save the spectrogram to the new file
+    cv2.imwrite(new_file_path, spectrogram)
+    print(f"Spectrogram saved as {new_filename}")
+
+def show_spectrogram(path):
+    img = cv2.imread(path)
+    cv2.imshow('image', img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
 if __name__ == "__main__":
     while True:
-        spectrogram = read_spectrogram()
+        #spectrogram = read_spectrogram()
+        spectrogram = np.random.randint(255, size = (300,600,3))
+
+
+        keyword_id = 6
+        save_spectrogram(spectrogram, "data", "spectrogram_" + str(keyword_id))
+
+
+        exit()
         #print(spectrogram)
         # # if arduino_serial.is_open:
         # times, fft_values = read_serial()
@@ -127,17 +183,17 @@ if __name__ == "__main__":
         # Plot the data
         # Function to show the heat map
 
-        plt.imshow(np.transpose(spectrogram), cmap='viridis')
-        plt.colorbar()
-
-        # Adding details to the plot
-        plt.title("Spectrogram")
-        plt.xlabel('x-axis')
-        plt.ylabel('y-axis')
-
-        # Displaying the plot
-        plt.show()
-        exit()
+        # plt.imshow(np.transpose(spectrogram), cmap='viridis')
+        # plt.colorbar()
+        #
+        # # Adding details to the plot
+        # plt.title("Spectrogram")
+        # plt.xlabel('x-axis')
+        # plt.ylabel('y-axis')
+        #
+        # # Displaying the plot
+        # plt.show()
+        # exit()
 
 
 # save to json

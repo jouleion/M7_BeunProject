@@ -15,7 +15,7 @@
 // buffer for fft
 // this should be a power of 2 i believe
 #define SAMPLE_BUFFER_SIZE 128
-#define SAMPLE_RATE 8000
+#define SAMPLE_RATE 9000
 
 // this makes a 256x128 pixel image = 32 KB
 // 128x128 = 16KB
@@ -35,7 +35,7 @@ float spectogram[N_O_SAMPLES][SAMPLE_BUFFER_SIZE];
 // keep track of current spectogram index
 int spectogram_index = 0;
 
-// real and imaginary components    -> could be turned into floats
+// real and imaginary components for fft transform
 float vReal[SAMPLE_BUFFER_SIZE];
 float vImag[SAMPLE_BUFFER_SIZE];
 
@@ -43,8 +43,8 @@ float vImag[SAMPLE_BUFFER_SIZE];
 int32_t raw_samples[SAMPLE_BUFFER_SIZE];
 
 
-// Create FFT object
-ArduinoFFT<float> FFT = ArduinoFFT<float>(vReal, vImag, SAMPLE_BUFFER_SIZE, SAMPLE_RATE);
+// Create FFT object (sample buffer size must be a power of 2)
+ArduinoFFT<float> FFT = ArduinoFFT<float>(vReal, vImag, SAMPLE_BUFFER_SIZE, SAMPLE_RATE, true);
 
 void setup(){
   // we need serial output for the plotter
@@ -63,10 +63,10 @@ void setup(){
 
 void loop(){
     // read read_microphone data, store in raw_samples
-    int n_read_samples = read_microphone();
+    read_microphone();
 
     // do ftt for read buffer -> stores in vReal
-    do_fft(n_read_samples);
+    do_fft();
 
     // save vReal into spectogram as correct index
     write_to_spectogram(vReal, spectogram_index);
@@ -84,7 +84,7 @@ void loop(){
     delay(1);
 }
 
-int read_microphone(){
+void read_microphone(){
     // read from the I2S device
     size_t bytes_read = 0;
     i2s_read(I2S_NUM_0, raw_samples, sizeof(int32_t) * SAMPLE_BUFFER_SIZE, &bytes_read, portMAX_DELAY);
@@ -94,15 +94,11 @@ int read_microphone(){
     for(int i = 0; i < SAMPLE_BUFFER_SIZE; i++){
       raw_samples[i] = raw_samples[i];
     }
-    return samples_read;
 }
 
-void do_fft(int n_read_samples){
-  for (int i = 0; i < SAMPLE_BUFFER_SIZE; i++){
-      vReal[i] = 0;
-  }
+void do_fft(){
   // prepare data
-  for (int i = 0; i < n_read_samples; i++){
+  for (int i = 0; i < SAMPLE_BUFFER_SIZE; i++){
       vReal[i] = raw_samples[i];
       vImag[i] = 0;
   }
@@ -115,13 +111,13 @@ void do_fft(int n_read_samples){
   FFT.complexToMagnitude();
 }
 
-void write_to_spectogram(float frequency_data[], int index){
+void write_to_spectogram(float* frequency_data, int index){
   // at starting index of the spectogram we write the data
   // then increment the index -> do this in dedicated function
   increment_spectogram_index();
 
   // store each frequency_data point
-  for(int i = 0; i < sizeof(frequency_data); i++){
+  for(int i = 0; i < SAMPLE_BUFFER_SIZE; i++){
     spectogram[spectogram_index][i] = frequency_data[i];
   }
 }
