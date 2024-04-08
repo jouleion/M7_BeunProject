@@ -148,6 +148,36 @@ def save_spectrogram(spectrogram, data_path, keyword_id):
     cv2.imwrite(new_file_path, spectrogram)
     print(f"Spectrogram saved as {new_filename}")
 
+def save_audio(audio_array, data_path, keyword_id):
+    # save audio sample in correct folder depending on the keyword id thats being used
+
+    # put in right subfolder
+    subfolder_path = os.path.join(data_path, str(keyword_id))
+
+    # make subfolder if it did not exsist yet
+    if not os.path.exists(subfolder_path):
+        os.makedirs(subfolder_path)
+
+    # Find the highest existing index and generate a new file name
+    existing_files = os.listdir(subfolder_path)
+    max_index = 0
+    for file in existing_files:
+        if file.startswith("audio_") and file.endswith(".png"):
+            try:
+                index = int(file.split("_")[1].split(".")[0])
+                max_index = max(max_index, index)
+            except ValueError:
+                pass
+
+    new_index = max_index + 1
+    # make new name with 3 leading zeros
+    new_filename = f"spectrogram_{new_index:03d}.png"
+    new_file_path = os.path.join(subfolder_path, new_filename)
+
+    # Save the spectrogram to the new file
+    np.save(new_file_path, audio_array)
+    print(f"Spectrogram saved as {new_filename}")
+
 def show_spectrogram(path):
     img = cv2.imread(path)
     cv2.imshow('image', img)
@@ -156,12 +186,17 @@ def show_spectrogram(path):
 
 if __name__ == "__main__":
     while True:
-        #spectrogram = read_spectrogram()
-        spectrogram = np.random.randint(255, size = (300,600,3))
+        if tiny_ml_connected:
+            spectrogram = read_spectrogram()
+        else:
+            spectrogram = np.random.randint(255, size = (300,600,3))
 
 
-        keyword_id = 6
+        keyword_id = 5
         save_spectrogram(spectrogram, "data", "spectrogram_" + str(keyword_id))
+
+        audio = [1, 2, 3, 1, 3, 1, 3, 2,4 ,4, 5, 3, 5, 3 ,7 ,4 ,8 ,4 ,7 ,4 ,6 ,4,3 ,4 ,5, 7 ,6 ,5 ,5 ,5 ,5]
+        save_audio(audio, "data", "audio_" + str(keyword_id))
 
 
         exit()
