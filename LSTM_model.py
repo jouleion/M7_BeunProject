@@ -14,6 +14,7 @@ import numpy as np
 import tensorflow as tf
 import os
 import cv2
+import matplotlib.pyplot as plt
 from tensorflow import keras
 from sklearn.model_selection import train_test_split
 from tflite_c_converter import convert_tflite_to_c
@@ -25,7 +26,13 @@ def prepare_spectrogram_data(data_split):
     # get, prepare and split the data
     X, y = get_spectrogram_data("data")
 
-    # do as little data prep as possible, tiny ml has to do this too
+    # Convert 2D grayscale images to 3D tensors with single channel
+    # add a channel dimention to each image (128, 128) -> (128, 128, 1)
+    X = [np.expand_dims(img, axis=-1) for img in X]
+    X = np.array(X)
+
+    # Normalize pixel values to [0, 1] range
+    X = X.astype('float32') / 255.0
 
     # split data
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=data_split)
@@ -51,7 +58,7 @@ def get_spectrogram_data(data_path):
             if len(split_name) > 1:
                 if split_name[0] == "spectrogram":
                     # store number after _ as the label
-                    label = split_name[1]
+                    label = int(split_name[1])
                 else:
                     continue
             else:
@@ -65,9 +72,11 @@ def get_spectrogram_data(data_path):
                     print(filename)
                     image_path = os.path.join(subfolder_path, filename)
                     image = cv2.imread(image_path)
-                    X.append(image)
+                    # Convert the image to grayscale
+                    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+                    X.append(gray_image)
                     y.append(label)
-    return X, y
+    return X, np.array(y)
 
 def construct_smart_model(width, heigth, n_of_classes):
     # construct cnn model here
@@ -125,6 +134,7 @@ def construct_dumb_model(width, heigth, n_of_classes):
     model.summary()
     return model
 
+
 def train_model(model, X_train, y_train, epochs, batch_size, validation_split):
     # do validation split here
     X_train, X_vali, y_train, y_vali = train_test_split(X_train, y_train, test_size=validation_split)
@@ -132,6 +142,18 @@ def train_model(model, X_train, y_train, epochs, batch_size, validation_split):
     history = model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_data=(X_vali, y_vali))
 
     return model, history
+
+def plot_history(history):
+    loss = history.history['loss']
+    val_loss = history.history['val_loss']
+    x_range = range(1, len(history.epoch) + 1)
+    plt.plot(x_range, loss, 'g.', label='Training loss')
+    plt.plot(x_range, val_loss, 'b', label='Validation loss')
+    plt.title('Training and validation loss')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.show()
 
 def save_model(model, model_is_smart):
     # Define a path where models are saved
@@ -169,7 +191,10 @@ if __name__ == "__main__":
 
     # train model
     # epochs, batch_size, validation split
-    model, history = train_model(model, X_train, y_train, 50, 80, 0.5)
+    model, history = train_model(model, X_train, y_train, 30, 2, 0.2)
+
+    # plot accuray over time
+    plot_history(history)
 
     # evaluate the model
 

@@ -194,17 +194,17 @@ if __name__ == "__main__":
         if tiny_ml_connected:
             spectrogram = read_spectrogram()
         else:
-            spectrogram = np.random.randint(255, size = (300,600,3))
+            spectrogram = np.random.randint(255, size = (128,128,1))
 
 
-        keyword_id = 5
+        keyword_id = 1
         save_spectrogram(spectrogram, "data", "spectrogram_" + str(keyword_id))
 
         audio = [1, 2, 3, 1, 3, 1, 3, 2,4 ,4, 5, 3, 5, 3 ,7 ,4 ,8 ,4 ,7 ,4 ,6 ,4,3 ,4 ,5, 7 ,6 ,5 ,5 ,5 ,5]
         save_audio(audio, "data", "audio_" + str(keyword_id))
 
 
-        exit()
+
         #print(spectrogram)
         # # if arduino_serial.is_open:
         # times, fft_values = read_serial()
