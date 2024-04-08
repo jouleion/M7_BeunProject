@@ -167,7 +167,7 @@ def save_audio(audio_array, data_path, keyword_id):
     existing_files = os.listdir(subfolder_path)
     max_index = 0
     for file in existing_files:
-        if file.startswith("audio_") and file.endswith(".png"):
+        if file.startswith("audio_") and file.endswith(".png"):             # !!!!!!!!!! This is saves as .npy file, change this!
             try:
                 index = int(file.split("_")[1].split(".")[0])
                 max_index = max(max_index, index)
