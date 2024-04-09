@@ -1,3 +1,8 @@
+// This is used to send spectrogram data over serial to python
+// Data collection of keywords
+// light = red means that the tiny ml is recording. otherwise it is sending data over serial
+// tiny ml settings: CDC on, PSRAM: QSPI PSRAM, Flash size: 16mb
+
 #include <driver/i2s.h>
 #include "arduinoFFT.h"
 
@@ -49,8 +54,16 @@ ArduinoFFT<float> FFT = ArduinoFFT<float>(vReal, vImag, SAMPLE_BUFFER_SIZE, SAMP
 void setup(){
   // we need serial output for the plotter
   Serial.begin(115200);
+
   
+  delay(2000);
+
+  // blink so user can prepare to speak
   pinMode(pin_led, OUTPUT);
+  digitalWrite(pin_led, HIGH);
+  delay(200);
+  digitalWrite(pin_led, LOW);
+  delay(1000);
   digitalWrite(pin_led, HIGH);
 
   //button
@@ -73,15 +86,20 @@ void loop(){
 
     // send spectogram when buffer is filled
     if(spectogram_index == 0){
-        //send_spectrogram();
-        test_python();
+        digitalWrite(pin_led, LOW);
+        send_spectrogram();
+//        test_python();
+
+        while(1){
+          delay(100);  
+        }
     }
 
     // option to send the microphone data
     // send_microphone_data();
 
     // short delay to prevent esp from exploding, maybe?
-    delay(1);
+//    delayMicroseconds(10);
 }
 
 void read_microphone(){

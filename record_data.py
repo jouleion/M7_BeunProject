@@ -2,6 +2,20 @@
 This is used to record the microphone data from Wilson
 either as a spectrogram or as an audio array
 
+INSTRUCTIONS:
+    Audio read:
+    - Upload "microphone_send_audio_in.ino" to tiny ml board
+    - Set reading_audio to True
+
+    Spectrogram read:
+    - Upload "microphone_processed.ino" to the tiny ml board
+    - Set reading_audio to False
+
+    Recording data
+    - Set the keyword id
+    - Press reset on the tiny ml board
+    - Directly after press run on this python file
+    - when the red led is fully lit the tiny ml board is recording, there is a short flash just before it starts.
 
 
 following this tutorial to fetch serial data:
@@ -93,30 +107,36 @@ def read_spectrogram():
                         continue
 
                     if "," in pixel:
-                        # split image at ","
-                        row, frequency_strength = pixel.split(",")
-                        row = remove_letters(row)
-                        frequency_strength = remove_letters(frequency_strength)
+                        try:
+                            # split image at ","
+                            row, frequency_strength = pixel.split(",")
 
-                        if row != last_row:
-                            # Reset index for column when a new row is send
-                            column_index = 0
+                            # clean data
+                            row = remove_letters(row)
+                            frequency_strength = remove_letters(frequency_strength)
 
-                        #print(frequency_strength)
+                            # reset columns on new row
+                            if row != last_row:
+                                # Reset index for column when a new row is send
+                                column_index = 0
 
-                        # Store pixel at correct coordinate in np.array
-                        spectrogram[int(row)][column_index] = frequency_strength
-                        print(frequency_strength)
-                        column_index += 1
-                        last_row = row
+                            # Store pixel at correct coordinate in np.array
+                            spectrogram[int(row)][column_index] = frequency_strength
+                            column_index += 1
+                            last_row = row
 
+                        except ValueError:
+                            # report error
+                            print(f"Error with input: {pixel}")
                 else:
                     end_of_image = True
 
     # normalize spectrogram using min max scaling
     min_val = np.min(spectrogram)
     max_val = np.max(spectrogram)
-    spectrogram = (spectrogram - min_val) / (max_val - 50 - min_val + 0.01)
+    spectrogram = (spectrogram - min_val) / (max_val - min_val)
+    spectrogram = (spectrogram * 255).astype(np.uint8)
+    spectrogram = np.transpose(spectrogram)
 
     # return the spectrogram
     return spectrogram
@@ -139,7 +159,7 @@ def read_audio():
             if audio_value:
                 # print(audio_value)
                 if audio_value == "s":
-                    start_of_image = True
+                    start_of_audio = True
                     print("start of audio")
                     end_of_audio = False
                     continue
@@ -151,21 +171,24 @@ def read_audio():
                         continue
 
                     # add audio value to audio array, remove letters due to noise on the serial
-                    audio.append(float(remove_letters(audio_value)))
+                    audio.append(float(audio_value))
                 else:
                     end_of_audio = True
 
-    audio = np.array(audio, dtype=float)
+    audio = np.array(audio)
+
     # normalize audio using min max scaling
-    min_val = np.min(audio)
-    max_val = np.max(audio)
-    audio = (audio - min_val) / (max_val - 50 - min_val + 0.01)
+    # normalized_audio = (audio - audio.min() / audio.max() - audio.min()) * 2 + 1
+    normalized_audio = (audio - audio.mean()) / (audio.max() - audio.min()) * 2
+
+    #normalized_audio = np.array(normalized_audio, dtype='i1')
 
     # return the audio array
-    return audio
+    return normalized_audio
 
 def save_spectrogram_blind(spectrogram):
-    cv2.imwrite("spectrogram_001.png", spectrogram)
+    #cv2.imwrite("spectrogram_001.png", spectrogram)
+    pass
 
 def save_spectrogram(spectrogram, data_path, keyword_id):
     # save spectrogram in correct folder depending on the keyword id thats being used
@@ -238,7 +261,7 @@ def show_spectrogram(path):
 def plot_spectrogram(spectrogram):
     # plot a spectrogram
     # flip 2d array
-    plt.imshow(np.transpose(spectrogram), cmap='viridis')
+    plt.imshow(spectrogram, cmap='viridis')
     plt.colorbar()
 
     # Adding details to the plot
@@ -264,10 +287,10 @@ def plot_audio(audio):
 
 if __name__ == "__main__":
     # set the id of the keyword thats being used
-    keyword_id = 1
+    keyword_id = 4
 
     # reading audio or spectrogram?
-    reading_audio = False
+    reading_audio = True
 
     if tiny_ml_connected:
         if reading_audio:
@@ -290,22 +313,3 @@ if __name__ == "__main__":
             # show the recorded data
             plot_spectrogram(spectrogram)
     exit()
-
-
-
-
-
-        #print(spectrogram)
-        # # if arduino_serial.is_open:
-        # times, fft_values = read_serial()
-        # print(times)
-        # print(fft_values)
-        #
-        # #plot values
-        # x = np.array(times)
-        # y = np.array(fft_values)
-        #
-        # # Convert values to float
-        # x = list(map(float, x))
-        # y = list(map(float, y))
-        #
