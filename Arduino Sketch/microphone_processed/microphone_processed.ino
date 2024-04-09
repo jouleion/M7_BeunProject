@@ -52,6 +52,10 @@ int32_t raw_samples[SAMPLE_BUFFER_SIZE];
 ArduinoFFT<float> FFT = ArduinoFFT<float>(vReal, vImag, SAMPLE_BUFFER_SIZE, SAMPLE_RATE, true);
 
 void setup(){
+  // start up the I2S peripheral
+  i2s_driver_install(I2S_NUM_0, &i2s_config, 0, NULL);
+  i2s_set_pin(I2S_NUM_0, &i2s_mic_pins);
+  
   // we need serial output for the plotter
   Serial.begin(115200);
 
@@ -69,9 +73,7 @@ void setup(){
   //button
   pinMode(pin_button1, INPUT_PULLUP);
   
-  // start up the I2S peripheral
-  i2s_driver_install(I2S_NUM_0, &i2s_config, 0, NULL);
-  i2s_set_pin(I2S_NUM_0, &i2s_mic_pins);
+
 }
 
 void loop(){

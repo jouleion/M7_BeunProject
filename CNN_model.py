@@ -12,10 +12,11 @@ import cv2
 import matplotlib.pyplot as plt
 from tensorflow import keras
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 from tflite_c_converter import convert_tflite_to_c
 
 model_is_smart = False
-n_of_keywords = 2
+n_of_keywords = 4
 
 def prepare_spectrogram_data(data_split):
     # get, prepare and split the data
@@ -29,6 +30,9 @@ def prepare_spectrogram_data(data_split):
     # Normalize pixel values to [0, 1] range
     X = X.astype('float32') / 255.0
 
+    y = np.array(y)
+    y = np.expand_dims(y, axis=-1)
+
     # split data
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=data_split)
 
@@ -40,6 +44,7 @@ def get_spectrogram_data(data_path):
 
     X = []
     y = []
+
 
     # Iterate through the subfolders
     for subfolder in os.listdir(data_path):
@@ -71,7 +76,7 @@ def get_spectrogram_data(data_path):
                     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
                     X.append(gray_image)
                     y.append(label)
-    return X, np.array(y)
+    return X, y
 
 def construct_smart_model(width, heigth, n_of_classes):
     # construct cnn model here
@@ -105,8 +110,14 @@ def construct_dumb_model(width, heigth, n_of_classes):
     # construct cnn model here
     model = keras.Sequential(
         [
-            keras.layers.Conv2D(32, (3, 3), activation='relu', input_shape=(width, heigth, 1)),
-            keras.layers.MaxPooling2D((3, 3)),
+            keras.layers.Conv2D(32, (4, 4), activation='relu', input_shape=(width, heigth, 1)),
+            keras.layers.MaxPooling2D((4, 4)),
+
+            keras.layers.Conv2D(32, (3, 3), activation='relu'),
+            keras.layers.MaxPooling2D((2, 2)),
+
+            keras.layers.Conv2D(32, (3, 3), activation='relu'),
+            keras.layers.MaxPooling2D((2, 2)),
 
             keras.layers.Conv2D(32, (3, 3), activation='relu'),
             keras.layers.MaxPooling2D((2, 2)),
@@ -151,11 +162,20 @@ def plot_history(history):
     plt.show()
 
 def plot_predictions(X_test, actual_values, predictions):
+    # Reshape X_test to 2D
+    X_test_2d = X_test.reshape(X_test.shape[0], -1)
+
     plt.clf()
-    plt.plot(X_test, actual_values, 'b.', label='Actual')
-    plt.plot(X_test, predictions, 'r.', label='Predicted')
+    plt.plot(X_test_2d[:, 0], actual_values, 'b.', label='Actual')
+    plt.plot(X_test_2d[:, 0], predictions, 'r.', label='Predicted')
     plt.legend()
     plt.show()
+
+    cm = confusion_matrix(y_test, np.argmax(predictions, axis=1))
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm)
+    disp.plot()
+    plt.show()
+
 
 def save_model(model, model_is_smart):
     # Define a path where models are saved
@@ -176,9 +196,13 @@ def save_model(model, model_is_smart):
     array_path = "model.tflite"
     convert_tflite_to_c(array_path, "model1")
 
+
 if __name__ == "__main__":
     # prepare data
-    X_train, X_test, y_train, y_test = prepare_spectrogram_data(0.2)
+    X_train, X_test, y_train, y_test = prepare_spectrogram_data(0.4)
+
+    print("y_train shape:")
+    print(y_train.shape)
 
     print(y_train)
 
@@ -192,8 +216,12 @@ if __name__ == "__main__":
         model = construct_dumb_model(128, 128, n_of_keywords)
 
     # train model
+    max_batch_size = X_train.shape[0]
+    # print("Max batch size:")
+    # print(max_batch_size)
+
     # epochs, batch_size, validation split
-    model, history = train_model(model, X_train, y_train, 30, 2, 0.2)
+    model, history = train_model(model, X_train, y_train, 70, max_batch_size, 0.1)
 
     # plot accuray over time
     plot_history(history)
@@ -202,7 +230,7 @@ if __name__ == "__main__":
 
     # predictions
     predictions = model.predict(X_test)
-    # plot_predictions(X_test, y_test, predictions)
+    plot_predictions(X_test, y_test, predictions)
 
 
     # save the model
