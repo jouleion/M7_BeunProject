@@ -66,7 +66,7 @@ void loop(){
         //raw_samples[i] = raw_samples[i] >> 16;
         Serial.printf("%ld\n", raw_samples[i]>>16);
     }
-
+    iterations++;
 }
 
 // void send_microphone_data(int samples_read){
