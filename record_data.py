@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import re
 import cv2
 import os
+import csv
 
 
 # set true when tiny ml is conected
@@ -167,7 +168,7 @@ def save_audio(audio_array, data_path, keyword_id):
     existing_files = os.listdir(subfolder_path)
     max_index = 0
     for file in existing_files:
-        if file.startswith("audio_") and file.endswith(".png"):             # !!!!!!!!!! This is saves as .npy file, change this!
+        if file.startswith("audio_") and file.endswith(".csv"):             # !!!!!!!!!! This is saves as .npy file, change this!
             try:
                 index = int(file.split("_")[1].split(".")[0])
                 max_index = max(max_index, index)
@@ -176,11 +177,13 @@ def save_audio(audio_array, data_path, keyword_id):
 
     new_index = max_index + 1
     # make new name with 3 leading zeros
-    new_filename = f"spectrogram_{new_index:03d}.png"
+    new_filename = f"audio_{new_index:03d}.csv"
     new_file_path = os.path.join(subfolder_path, new_filename)
 
-    # Save the spectrogram to the new file
-    np.save(new_file_path, audio_array)
+    # Save the audio to the new file
+    with open(new_file_path, 'w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(audio_array)
     print(f"Spectrogram saved as {new_filename}")
 
 def show_spectrogram(path):
