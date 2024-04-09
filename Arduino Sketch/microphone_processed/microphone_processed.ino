@@ -73,8 +73,8 @@ void loop(){
 
     // send spectogram when buffer is filled
     if(spectogram_index == 0){
-        send_spectrogram();
-        //test_python();
+        //send_spectrogram();
+        test_python();
     }
 
     // option to send the microphone data
@@ -156,33 +156,33 @@ void test_python(){
     Serial.println("e");  
 }
 
-void send_microphone_data(){
-  //print all samples of the mic reading. send constant heigth bars for arduino plotter to have better magnitude read
-  for (int i = 0; i < SAMPLE_BUFFER_SIZE; i++){
-    Serial.print(100000000);
-    Serial.printf(",");
-    Serial.print(20000000);
-    Serial.printf(",");
-    Serial.print(-20000000);
-    Serial.printf(",");
-    Serial.print(-100000000);
-    Serial.printf(",");
-    Serial.printf("%ld\n", raw_samples[i]);
-  }
-}
-
-bool read_button(int pin){
-  if (!digitalRead(pin)) {
-    int sum = 0;
-    for (int i = 0; i < 8; i++) {
-        sum += !digitalRead(pin);
-    }
-    if (sum == 8) {
-        return true;
-    }
-  }
-  return false;
-}
+//void send_microphone_data(){
+//  //print all samples of the mic reading. send constant heigth bars for arduino plotter to have better magnitude read
+//  for (int i = 0; i < SAMPLE_BUFFER_SIZE; i++){
+//    Serial.print(100000000);
+//    Serial.printf(",");
+//    Serial.print(20000000);
+//    Serial.printf(",");
+//    Serial.print(-20000000);
+//    Serial.printf(",");
+//    Serial.print(-100000000);
+//    Serial.printf(",");
+//    Serial.printf("%ld\n", raw_samples[i]);
+//  }
+//}
+//
+//bool read_button(int pin){
+//  if (!digitalRead(pin)) {
+//    int sum = 0;
+//    for (int i = 0; i < 8; i++) {
+//        sum += !digitalRead(pin);
+//    }
+//    if (sum == 8) {
+//        return true;
+//    }
+//  }
+//  return false;
+//}
 
 // void PrintVector(double *vData, uint16_t bufferSize, uint8_t scaleType)
 // {

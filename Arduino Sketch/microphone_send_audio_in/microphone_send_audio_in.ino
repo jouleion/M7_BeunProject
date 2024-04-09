@@ -37,6 +37,7 @@ ArduinoFFT<double> FFT = ArduinoFFT<double>(vReal, vImag, SAMPLE_BUFFER_SIZE, SA
 void setup(){
   // we need serial output for the plotter
   Serial.begin(115200);
+  Serial.println("s");
 
   pinMode(pin_led, OUTPUT);
   digitalWrite(pin_led, HIGH);
@@ -51,24 +52,39 @@ void setup(){
 
 int iterations = 0;
 void loop(){
-    if(iterations > 500){
+    // read microphone
+    read_microphone();
+
+    // send audio sample
+    for(int i = 0; i < SAMPLE_BUFFER_SIZE; i++){
+        //raw_samples[i] = raw_samples[i] >> 16;
+        
+        // reduce amplitude of signal
+        Serial.printf("%ld\n", raw_samples[i]>>8);
+    }
+    
+    // count how many samples have been send
+    iterations++;
+
+    // after 128 send audio samples stop sending audio data
+    if(iterations > 128){
+        // print ending character
+        Serial.println("e");
+
+        // indicate end of audio send
         digitalWrite(pin_led, LOW);
         while (1){
+            // loop forever
             delay(100);
         }
     }
+}
+void read_microphone(){
+    // read from the I2S device
     size_t bytes_read = 0;
     i2s_read(I2S_NUM_0, raw_samples, sizeof(int32_t) * SAMPLE_BUFFER_SIZE, &bytes_read, portMAX_DELAY);
     int samples_read = bytes_read / sizeof(int32_t);
-
-    for(int i = 0; i < SAMPLE_BUFFER_SIZE; i++){
-        // reduce amplitude of signal
-        //raw_samples[i] = raw_samples[i] >> 16;
-        Serial.printf("%ld\n", raw_samples[i]>>16);
-    }
-    iterations++;
 }
-
 // void send_microphone_data(int samples_read){
 //   //print all samples of the mic reading. send constant heigth bars for arduino plotter to have better magnitude read
 //   for (int i = 0; i < samples_read; i++){

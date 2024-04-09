@@ -18,12 +18,12 @@ import cv2
 import os
 import csv
 
-
 # set true when tiny ml is conected
-tiny_ml_connected = False
+tiny_ml_connected = True
 
 if tiny_ml_connected:
     tiny_ml_serial = serial.Serial(port='COM5',  baudrate=115200, timeout=0.1)
+    print("connected to tiny ml")
 
 
 def read_serial():
@@ -71,7 +71,7 @@ def read_spectrogram():
 
     if tiny_ml_serial.is_open:
         end_of_image = False
-        start_of_image = True
+        start_of_image = False
         column_index = 0
         last_row = 0
 
@@ -80,7 +80,6 @@ def read_spectrogram():
             pixel = tiny_ml_serial.readline().decode().strip()
 
             if pixel:
-                print(pixel)
                 if pixel == "s":
                     start_of_image = True
                     print("start of image")
@@ -107,6 +106,7 @@ def read_spectrogram():
 
                         # Store pixel at correct coordinate in np.array
                         spectrogram[int(row)][column_index] = frequency_strength
+                        print(frequency_strength)
                         column_index += 1
                         last_row = row
 
@@ -120,6 +120,49 @@ def read_spectrogram():
 
     # return the spectrogram
     return spectrogram
+
+def read_audio():
+    # Initialize a numpy array filled with zeros
+    # this is a long array of numbers
+    audio = []
+
+    if tiny_ml_serial.is_open:
+        end_of_audio = False
+        start_of_audio = False
+        column_index = 0
+        last_row = 0
+
+        while not end_of_audio:
+            # Read and decode the incoming data
+            audio_value = tiny_ml_serial.readline().decode().strip()
+
+            if audio_value:
+                # print(audio_value)
+                if audio_value == "s":
+                    start_of_image = True
+                    print("start of audio")
+                    end_of_audio = False
+                    continue
+
+                if start_of_audio:
+                    if audio_value == "e":
+                        print("end of audio")
+                        end_of_audio = True
+                        continue
+
+                    # add audio value to audio array, remove letters due to noise on the serial
+                    audio.append(float(remove_letters(audio_value)))
+                else:
+                    end_of_audio = True
+
+    audio = np.array(audio, dtype=float)
+    # normalize audio using min max scaling
+    min_val = np.min(audio)
+    max_val = np.max(audio)
+    audio = (audio - min_val) / (max_val - 50 - min_val + 0.01)
+
+    # return the audio array
+    return audio
 
 def save_spectrogram_blind(spectrogram):
     cv2.imwrite("spectrogram_001.png", spectrogram)
@@ -168,7 +211,7 @@ def save_audio(audio_array, data_path, keyword_id):
     existing_files = os.listdir(subfolder_path)
     max_index = 0
     for file in existing_files:
-        if file.startswith("audio_") and file.endswith(".csv"):             # !!!!!!!!!! This is saves as .npy file, change this!
+        if file.startswith("audio_") and file.endswith(".csv"):
             try:
                 index = int(file.split("_")[1].split(".")[0])
                 max_index = max(max_index, index)
@@ -192,19 +235,63 @@ def show_spectrogram(path):
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
+def plot_spectrogram(spectrogram):
+    # plot a spectrogram
+    # flip 2d array
+    plt.imshow(np.transpose(spectrogram), cmap='viridis')
+    plt.colorbar()
+
+    # Adding details to the plot
+    plt.title("Spectrogram")
+    plt.xlabel('time')
+    plt.ylabel('frequency')
+
+    # Displaying the plot
+    plt.show()
+
+def plot_audio(audio):
+    sample_rate = 8000  # Assuming a sample rate of 44.1 kHz
+    time = np.linspace(0, len(audio) / sample_rate, len(audio))
+
+    # Plot the audio waveform
+    plt.figure(figsize=(12, 4))
+    plt.plot(time, audio)
+    plt.xlabel('Time (s)')
+    plt.ylabel('Amplitude')
+    plt.title('Audio Waveform')
+    plt.grid()
+    plt.show()
+
 if __name__ == "__main__":
-    while True:
-        if tiny_ml_connected:
-            spectrogram = read_spectrogram()
+    # set the id of the keyword thats being used
+    keyword_id = 1
+
+    # reading audio or spectrogram?
+    reading_audio = False
+
+    if tiny_ml_connected:
+        if reading_audio:
+            # read audio from serial
+            audio = read_audio()
+
+            # save data as csv in right keyword folder with correct naming
+            # data/audio_1/audio_00x.csv
+            save_audio(audio, "data", "audio_" + str(keyword_id))
+
+            plot_audio(audio)
         else:
-            spectrogram = np.random.randint(255, size = (128,128,1))
+            # read spectrogram from serial
+            spectrogram = read_spectrogram()
+
+            # save data as png in right keyword folder with correct naming
+            # data/spectrogram_1/spectrogram_00x.csv
+            save_spectrogram(spectrogram, "data", "spectrogram_" + str(keyword_id))
+
+            # show the recorded data
+            plot_spectrogram(spectrogram)
+    exit()
 
 
-        keyword_id = 1
-        save_spectrogram(spectrogram, "data", "spectrogram_" + str(keyword_id))
-
-        audio = [1, 2, 3, 1, 3, 1, 3, 2,4 ,4, 5, 3, 5, 3 ,7 ,4 ,8 ,4 ,7 ,4 ,6 ,4,3 ,4 ,5, 7 ,6 ,5 ,5 ,5 ,5]
-        save_audio(audio, "data", "audio_" + str(keyword_id))
 
 
 
@@ -222,21 +309,3 @@ if __name__ == "__main__":
         # x = list(map(float, x))
         # y = list(map(float, y))
         #
-
-        # Plot the data
-        # Function to show the heat map
-
-        # plt.imshow(np.transpose(spectrogram), cmap='viridis')
-        # plt.colorbar()
-        #
-        # # Adding details to the plot
-        # plt.title("Spectrogram")
-        # plt.xlabel('x-axis')
-        # plt.ylabel('y-axis')
-        #
-        # # Displaying the plot
-        # plt.show()
-        # exit()
-
-
-# save to json
