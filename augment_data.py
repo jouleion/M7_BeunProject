@@ -17,12 +17,14 @@ def augment_spectrogram(spectrogram):
     return tilt_spectrogram
 
 
-def noisy(img, prob, noise_type="sp"): #https://towardsdatascience.com/data-augmentation-compilation-with-python-and-opencv-b76b1cd500e0
-    '''
+def noisy(img, prob, noise_type="sp"):
+    """
     ### Adding Noise ###
     img: image
     cj_type: {gauss: gaussian, sp: salt & pepper}
-    '''
+
+    #https://towardsdatascience.com/data-augmentation-compilation-with-python-and-opencv-b76b1cd500e0
+    """
     if noise_type == "gauss":
         image = img.copy()
         mean = 0
@@ -75,3 +77,5 @@ if __name__ == "__main__":
     augmented_spectrogram = augment_spectrogram(original_spectrogram)
     spectrograms = [original_spectrogram, augmented_spectrogram]
     plot_two_digits(spectrograms)
+
+    # add save function, we can reuse the function in record data to save spectrograms

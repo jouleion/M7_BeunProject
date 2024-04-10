@@ -1,8 +1,10 @@
 """
-Train and save CNN model
+Load spectrograms
+Setup & Train CNN model
+Analyse
+Convert to tflite model and c-array
 
 for both dumb and smart models
-
 """
 import math
 import numpy as np
@@ -15,8 +17,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 from tflite_c_converter import convert_tflite_to_c
 
-model_is_smart = False
-n_of_keywords = 4
 
 def prepare_spectrogram_data(data_split):
     # get, prepare and split the data
@@ -39,12 +39,12 @@ def prepare_spectrogram_data(data_split):
     # maybe add validation data
     return X_train, X_test, y_train, y_test
 
+
 def get_spectrogram_data(data_path):
     # get all images from the different subfolders in the data folder
 
     X = []
     y = []
-
 
     # Iterate through the subfolders
     for subfolder in os.listdir(data_path):
@@ -62,8 +62,8 @@ def get_spectrogram_data(data_path):
                 else:
                     continue
             else:
-                # skip folder if does not exist
-                print("Skipped a folder, has no index number")
+                # skip folder if in wrong format
+                print("Skipped a folder, has wrong format")
                 continue
 
             # Load the images from the subfolder
@@ -78,7 +78,8 @@ def get_spectrogram_data(data_path):
                     y.append(label)
     return X, y
 
-def construct_smart_model(width, heigth, n_of_classes):
+
+def construct_smart_cnn_model(width, heigth, n_of_classes):
     # construct cnn model here
     model = keras.Sequential(
         [
@@ -106,7 +107,8 @@ def construct_smart_model(width, heigth, n_of_classes):
     model.summary()
     return model
 
-def construct_dumb_model(width, heigth, n_of_classes):
+
+def construct_dumb_cnn_model(width, heigth, n_of_classes):
     # construct cnn model here
     model = keras.Sequential(
         [
@@ -149,17 +151,19 @@ def train_model(model, X_train, y_train, epochs, batch_size, validation_split):
 
     return model, history
 
+
 def plot_history(history):
     loss = history.history['loss']
     val_loss = history.history['val_loss']
     x_range = range(1, len(history.epoch) + 1)
-    plt.plot(x_range, loss, 'g.', label='Training loss')
+    plt.plot(x_range, loss, 'g.', label='training loss')
     plt.plot(x_range, val_loss, 'b', label='Validation loss')
-    plt.title('Training and validation loss')
+    plt.title('training and validation loss')
     plt.xlabel('Epochs')
     plt.ylabel('Loss')
     plt.legend()
     plt.show()
+
 
 def plot_predictions(X_test, actual_values, predictions):
     # Reshape X_test to 2D
@@ -177,7 +181,28 @@ def plot_predictions(X_test, actual_values, predictions):
     plt.show()
 
 
+def load_model(model_is_smart):
+    # Define a path where models are saved
+    if model_is_smart:
+        path = "models/cnn/smart/model.keras"
+    else:
+        path = "models/cnn/dumb/model.keras"
+
+    # load the model
+    model = keras.models.load_model(path)
+    return model
+
+
 def save_model(model, model_is_smart):
+    # this is different from exporting, export is needed to convert to tflite
+    # Define a path where models are saved
+    if model_is_smart:
+        path = "models/cnn/smart/model.keras"
+    else:
+        path = "models/cnn/dumb/model.keras"
+    model.save(path)
+
+def export_model(model, model_is_smart):
     # Define a path where models are saved
     if model_is_smart:
         path = "models/cnn/smart"
@@ -185,53 +210,86 @@ def save_model(model, model_is_smart):
         path = "models/cnn/dumb"
     model.export(path)
 
+
+def convert_to_tf_lite(model_is_smart):
+    # Define a path where models are saved
+    if model_is_smart:
+        path = "models/cnn/smart"
+    else:
+        path = "models/cnn/dumb"
+
     # convert to tf lite model
     converter = tf.lite.TFLiteConverter.from_saved_model(path)
     tflite_model = converter.convert()
 
-    with open('model.tflite', 'wb') as f:
+    # prepare file name, in correct folder
+    file_name = os.path.join(path + "_lite", "model.tflite")
+
+    with open(file_name, 'wb') as f:
         f.write(tflite_model)
+        print("saved tflite model as:")
+        print(file_name)
+
+
+def convert_to_c_array(model_is_smart):
+    # Define a path where models are saved
+    if model_is_smart:
+        model_path = "models/cnn/smart_lite/model.tflite"
+        file_name = "smart_CNN"
+    else:
+        model_path = "models/cnn/dumb_lite/model.tflite"
+        file_name = "dumb_CNN"
+
 
     # convert to c-array
-    array_path = "model.tflite"
-    convert_tflite_to_c(array_path, "model1")
+    convert_tflite_to_c(model_path, file_name, "models/c_arrays")
 
 
 if __name__ == "__main__":
+    # setup variables
+    #     save_new_model will overwrite previous model
+    #     model_is_smart is used to use a dumb or smart neural network. smart is used for the later stages
+    #     n_of_keywords determines the number of output neurons, dependend on the nummber of classes used
+    export_new_model = True
+    model_is_smart = True
+    n_of_keywords = 4
+
     # prepare data
-    X_train, X_test, y_train, y_test = prepare_spectrogram_data(0.4)
+    X_train, X_test, y_train, y_test = prepare_spectrogram_data(0.2)
 
-    print("y_train shape:")
-    print(y_train.shape)
-
-    print(y_train)
+    # print number of training samples
+    print("number of training samples:")
+    print(y_train.shape[0])
 
     if model_is_smart:
         # make smart neural network
         # 128x128
-        model = construct_smart_model(128, 128, n_of_keywords)
+        model = construct_smart_cnn_model(128, 128, n_of_keywords)
     else:
         # make dumb model
         # 128x128
-        model = construct_dumb_model(128, 128, n_of_keywords)
+        model = construct_dumb_cnn_model(128, 128, n_of_keywords)
 
     # train model
     max_batch_size = X_train.shape[0]
-    # print("Max batch size:")
-    # print(max_batch_size)
+    epochs = 70
 
     # epochs, batch_size, validation split
-    model, history = train_model(model, X_train, y_train, 70, max_batch_size, 0.1)
+    model, history = train_model(model, X_train, y_train, epochs, max_batch_size, 0.1)
 
     # plot accuray over time
     plot_history(history)
 
-    # evaluate the model
+    if export_new_model:
+        # export model
+        export_model(model, model_is_smart)
 
-    # predictions
+        # convert exported model to tflite model. (model is loaded in function)
+        convert_to_tf_lite(model_is_smart)
+
+        # convert tflite model to c-array
+        convert_to_c_array(model_is_smart)
+
+    # evaluate new model
     predictions = model.predict(X_test)
     plot_predictions(X_test, y_test, predictions)
-
-
-    # save the model
-    save_model(model, model_is_smart)

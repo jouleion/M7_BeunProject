@@ -1,4 +1,7 @@
-def convert_tflite_to_c(tflite_path: str = 'model.tflite', model_name: str = 'model') -> str:
+import os
+
+
+def convert_tflite_to_c(tflite_path: str = 'model.tflite',  model_name: str = 'model', save_path: str = 'models') -> str:
     """
     Converts TFLite models into C-compatible header files for Arduino etc.
 
@@ -10,6 +13,9 @@ def convert_tflite_to_c(tflite_path: str = 'model.tflite', model_name: str = 'mo
     model_name : str
         Output model name
         Default value is 'model'
+    save_path : str
+        Path where c array will be stored
+        Default is "models"
 
     Returns
     -------
@@ -41,8 +47,11 @@ def convert_tflite_to_c(tflite_path: str = 'model.tflite', model_name: str = 'mo
     # Join the chunks of hexadecimal strings with newlines to format them neatly.
     hex_array = ',\n     '.join(hex_lines)
 
+    # prepare the file name in correct path
+    new_file_name = os.path.join(save_path, model_name + '.h')
+
     # Open a header file in write mode and write out the TFLite model as an array.
-    with open(model_name + '.h', 'w') as header_file:
+    with open(new_file_name, 'w') as header_file:
         # Write the length of the TFLite model to the header file.
         header_file.write(f'unsigned int {model_name}_len = {array_length};\n\n')
 
