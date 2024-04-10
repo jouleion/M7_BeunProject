@@ -7,14 +7,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 # import re
 import cv2
-# import os
+import os
 # import csv
-# from record_data import save_spectrogram, save_audio
+from record_data import save_spectrogram, save_audio
 
 def augment_spectrogram(spectrogram):
-    noise_spectrogram = noisy(spectrogram, prob=np.random.uniform(0.01, 0.04))
-    tilt_spectrogram = rotate_image(noise_spectrogram, np.random.randint(-7,7))
-    return tilt_spectrogram
+    augmented_spectrogram = noisy(spectrogram, prob=np.random.uniform(0.001, 0.01))
+    augmented_spectrogram = rotate_image(augmented_spectrogram, np.random.randint(-7,7))
+    augmented_spectrogram = noisy(augmented_spectrogram, prob=np.random.uniform(0.001, 0.01))
+
+    return augmented_spectrogram
 
 
 def noisy(img, prob, noise_type="sp"):
@@ -70,12 +72,26 @@ def plot_two_digits(digits):
 
     plt.show()
 
+def augment_images(data_path, keyword_id):
+    subfolder_path = os.path.join(data_path, str(keyword_id))
+    existing_files = os.listdir(subfolder_path)
+
+
+    for file in existing_files:
+        print(os.path.join(subfolder_path,file))
+        if file.startswith("spectrogram_") and file.endswith(".png"):
+            original_spectrogram = cv2.imread(os.path.join(subfolder_path,file), cv2.IMREAD_GRAYSCALE)
+            augmented_spectrogram = augment_spectrogram(original_spectrogram)
+            spectrograms = [original_spectrogram, augmented_spectrogram]
+            plot_two_digits(spectrograms)
+            save_spectrogram(augmented_spectrogram,"data", "augmented_"+keyword_id)
+            # pass
 
 
 if __name__ == "__main__":
-    original_spectrogram = cv2.imread('data/spectrogram_1/spectrogram_001.png', cv2.IMREAD_GRAYSCALE)
-    augmented_spectrogram = augment_spectrogram(original_spectrogram)
-    spectrograms = [original_spectrogram, augmented_spectrogram]
-    plot_two_digits(spectrograms)
+    # original_spectrogram = cv2.imread('data/spectrogram_1/spectrogram_001.png', cv2.IMREAD_GRAYSCALE)
+    # augmented_spectrogram = augment_spectrogram(original_spectrogram)
+    # spectrograms = [original_spectrogram, augmented_spectrogram]
+    # plot_two_digits(spectrograms)
 
-    # add save function, we can reuse the function in record data to save spectrograms
+    augment_images("data", "spectrogram_1")
