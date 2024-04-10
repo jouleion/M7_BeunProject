@@ -45,7 +45,6 @@ def get_spectrogram_data(data_path):
     X = []
     y = []
 
-
     # Iterate through the subfolders
     for subfolder in os.listdir(data_path):
         subfolder_path = os.path.join(data_path, subfolder)
