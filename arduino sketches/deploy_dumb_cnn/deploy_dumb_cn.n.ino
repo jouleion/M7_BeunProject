@@ -1,4 +1,11 @@
 /*
+    This will be used to deploy the cnn model to the esp32
+
+    - add spectrogram generation from microphone
+    - scale that to [0, 1] as a float
+    - pass this input into the nn
+    - show output with neopixel lights
+
     Boilerplate code for a neural network on the esp32
     Setup is a bit involved, but the loop has some nice comments explaining the process of predictions
 */

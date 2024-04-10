@@ -1,9 +1,10 @@
 """
-Train and save CNN model
-convert to tflite model and c-array
+Load spectrograms
+Setup & Train CNN model
+Analyse
+Convert to tflite model and c-array
 
 for both dumb and smart models
-
 """
 import math
 import numpy as np

@@ -1,3 +1,5 @@
+// dit is oud en ongebruikt!
+
 #include <TensorFlowLite_ESP32.h>
 
 #include "tensorflow/lite/micro/all_ops_resolver.h"

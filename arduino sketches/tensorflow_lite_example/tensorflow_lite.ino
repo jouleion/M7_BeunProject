@@ -1,3 +1,6 @@
+// look at the boilerplate file to understand, not this file
+// code from the programming tutotorial
+
 #include <TensorFlowLite_ESP32.h>
 
 #include "tensorflow/lite/micro/all_ops_resolver.h"
