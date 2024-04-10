@@ -24,7 +24,16 @@ namespace {
   int inference_count = 0;
 
   // we set the memory size to be used by our inputs, intermediate data and output variables here
-  constexpr int kTensorArenaSize = 2000;            // see reader for instructions
+  // these are the reader instructions
+  /*
+        Note: If the allocation of tensors fails, your TensorArenaSize is proba-
+        bly too small. Try to increase its size and re-upload your code. You can
+        check how much bytes of the TensorArena are actually used by calling
+        size_t arena_used_size = interpreter->arena_used_bytes(); after success-
+        fully allocating all tensors.
+  */
+  constexpr int kTensorArenaSize = 2000;
+  // see reader for instructions
   uint8_t tensor_arena[kTensorArenaSize];
 }
 
@@ -72,6 +81,10 @@ void setup_neural_network(){
   } else {
     Serial.println("--- Tensors allocated");
   }
+
+  // to check the actual bytes that are have to be allocated, run this code snippet
+  // size_t arena_used_size = interpreter->arena_used_bytes();
+
 
   size_t used_size = interpreter->arena_used_bytes();
   Serial.print("--- Arena used bytes: ");
