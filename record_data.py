@@ -35,9 +35,7 @@ import csv
 # set true when tiny ml is conected
 tiny_ml_connected = True
 
-if tiny_ml_connected:
-    tiny_ml_serial = serial.Serial(port='COM5',  baudrate=115200, timeout=0.1)
-    print("connected to tiny ml")
+
 
 
 def read_serial():
@@ -286,6 +284,10 @@ def plot_audio(audio):
     plt.show()
 
 if __name__ == "__main__":
+    if tiny_ml_connected:
+        tiny_ml_serial = serial.Serial(port='COM5', baudrate=115200, timeout=0.1)
+        print("connected to tiny ml")
+
     # set the id of the keyword thats being used
     keyword_id = 4
 
