@@ -69,9 +69,9 @@ history = model.fit(
 loss = history.history['loss']
 val_loss = history.history['val_loss']
 x_range = range(1, len(history.epoch) + 1)
-plt.plot(x_range, loss, 'g.', label='Training loss')
+plt.plot(x_range, loss, 'g.', label='training loss')
 plt.plot(x_range, val_loss, 'b', label='Validation loss')
-plt.title('Training and validation loss')
+plt.title('training and validation loss')
 plt.xlabel('Epochs')
 plt.ylabel('Loss')
 plt.legend()
