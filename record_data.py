@@ -289,7 +289,7 @@ if __name__ == "__main__":
         print("connected to tiny ml")
 
     # set the id of the keyword thats being used
-    keyword_id = 4
+    keyword_id = 1
 
     # reading audio or spectrogram?
     reading_audio = True

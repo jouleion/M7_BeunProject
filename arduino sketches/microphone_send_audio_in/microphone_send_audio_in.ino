@@ -19,8 +19,8 @@
 
 // buffer for fft
 #define SAMPLE_BUFFER_SIZE 128
-#define SAMPLE_RATE 9000
-#define N_O_SAMPLES 128
+#define SAMPLE_RATE 1000
+#define N_O_SAMPLES 64
 
 // cool mic initialisation!
 #include "mic_header.h"
@@ -53,6 +53,7 @@ void setup(){
   digitalWrite(pin_led, LOW);
   delay(1000);
   digitalWrite(pin_led, HIGH);
+  delay(200);
 
   //button
   pinMode(pin_button1, INPUT_PULLUP);
