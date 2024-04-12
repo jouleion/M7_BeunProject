@@ -69,23 +69,38 @@ def read_serial_data():
 
                 # Check if both audio and spectrogram have been received
                 if audio_received and spectrogram_received:
-                    return spectrogram_data, audio_data
+                    print(f"Spectrogram data shape: {spectrogram_data.shape}")
+                    return np.array(audio_data), spectrogram_data
             else:
                 # Process the data based on the current state
                 if is_audio:
-                    # Add the audio value to the audio_data list
-                    audio_data.append(float(data))
+                    try:
+                        # Add the audio value to the audio_data list
+                        audio_data.append(float(data))
+                    except ValueError:
+                        audio_data.append(0)
+                        # report error
+                        print(f"Error with audio input: {data}")
                 elif is_spectrogram:
                     # Split the spectrogram data and store it in the spectrogram_data array
                     if "," in data:
-                        row, value = data.split(",")
-                        row = int(re.sub("[^0-9]", "", row))
-                        value = int(re.sub("[^0-9]", "", value))
-                        spectrogram_data[row][col_index] = value
-                        col_index += 1
-                        if col_index >= 128:
-                            col_index = 0
-                            row_index += 1
+                        if row_index < 63:
+                            try:
+                                row, value = data.split(",")
+                                row = int(re.sub("[^0-9]", "", row))
+                                value = int(re.sub("[^0-9]", "", value))
+                                spectrogram_data[row_index][col_index] = value
+
+                                # increment col index
+                                col_index += 1
+                                if col_index >= 128:
+                                    print("new row in spectrogram")
+                                    col_index = 0
+                                    row_index = row
+                            except ValueError:
+                                # value stays 0
+                                # report error
+                                print(f"Error with spectrogram input: {data}")
 
         # Check if the loop has been running for too long without receiving both audio and spectrogram
         if time.time() - start_time > 10:
@@ -175,7 +190,7 @@ def plot_spectrogram(spectrogram):
     plt.show()
 
 def plot_audio(audio):
-    sample_rate = 8000  # Assuming a sample rate of 44.1 kHz
+    sample_rate = 1000  # Assuming a sample rate of 1 kHz
     time = np.linspace(0, len(audio) / sample_rate, len(audio))
 
     # Plot the audio waveform
@@ -195,9 +210,9 @@ if __name__ == "__main__":
         tiny_ml_serial = serial.Serial(port='COM5', baudrate=115200, timeout=0.1)
         print("connected to tiny ml")
 
-        audio, spectrogram = read_serial_data()
-        spectrogram = np.array(spectrogram)
+        audio, spectrogram = read_serial_data()     # made sure to not flip the outputs (crying now)
 
+        print("spectrogram shape")
         print(spectrogram.shape)
 
         # save data right keyword folder with correct naming

@@ -11,9 +11,11 @@ public:
     ~MicrophoneHandler();
 
     void readAudio();
+    void normalizeAudio();
     void sendAudio();
     bool isSpectrogramReady();
     void computeSpectrogramRow();
+    void normalizeSpectrogram();
     void sendSpectrogram();
     
 
@@ -24,6 +26,7 @@ private:
 
     int32_t raw_samples[SAMPLE_BUFFER_SIZE];
     int32_t audio[AUDIO_BUFFER_SIZE];
+    float normalized_audio[AUDIO_BUFFER_SIZE];
     float vReal[SAMPLE_BUFFER_SIZE];
     float vImag[SAMPLE_BUFFER_SIZE];
     float spectrogram[N_O_SAMPLES][SAMPLE_BUFFER_SIZE];

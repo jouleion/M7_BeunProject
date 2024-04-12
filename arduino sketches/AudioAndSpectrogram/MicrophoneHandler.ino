@@ -35,10 +35,13 @@ void MicrophoneHandler::readAudio() {
 }
 
 void MicrophoneHandler::sendAudio() {
+    // normalize audio
+    normalizeAudio();
+  
     // send audio buffer over serial, with leading 'a' and ending 'e'
     Serial.println("a");
     for (int i = 0; i < AUDIO_BUFFER_SIZE; i++) {
-        Serial.println(audio[i]);
+        Serial.println(normalized_audio[i], 7);
     }
     Serial.println("e");
 }
@@ -51,6 +54,26 @@ bool MicrophoneHandler::isSpectrogramReady() {
     return false;
 }
 
+void MicrophoneHandler::normalizeAudio() {
+    // Normalize the audio
+    float mean = 0.0f;
+    float max_val = -32768.0f; // Minimum possible value for int16_t
+    float min_val = 32767.0f; // Maximum possible value for int16_t
+
+    // Calculate the mean, max, and min of the audio buffer
+    for (int i = 0; i < AUDIO_BUFFER_SIZE; i++) {
+        mean += float(audio[i]);
+        max_val = max(max_val, float(audio[i]));
+        min_val = min(min_val, float(audio[i]));
+    }
+    mean /= AUDIO_BUFFER_SIZE;
+
+    // Normalize the audio buffer
+    for (int i = 0; i < AUDIO_BUFFER_SIZE; i++) {
+        normalized_audio[i] = float((audio[i] - mean) / (max_val - min_val) * 2);
+    }
+}
+
 void MicrophoneHandler::computeSpectrogramRow() {
     // do FFT on the read data
     doFFT();
@@ -60,7 +83,32 @@ void MicrophoneHandler::computeSpectrogramRow() {
     incrementSpectrogramIndex();
 }
 
+void MicrophoneHandler::normalizeSpectrogram() {
+    // Find the minimum and maximum values in the spectrogram
+    float min_val = 32767.0f; // Maximum possible value for int16_t
+    float max_val = -32768.0f; // Minimum possible value for int16_t
+    for (int i = 0; i < N_O_SAMPLES; i++) {
+        for (int j = 0; j < SAMPLE_BUFFER_SIZE; j++) {
+            min_val = min(min_val, spectrogram[i][j]);
+            max_val = max(max_val, spectrogram[i][j]);
+        }
+    }
+
+    // Normalize the spectrogram values to the range [0, 255]
+    for (int i = 0; i < N_O_SAMPLES; i++) {
+        for (int j = 0; j < SAMPLE_BUFFER_SIZE; j++) {
+            spectrogram[i][j] = (spectrogram[i][j] - min_val) / (max_val - min_val) * 255.0f;
+            spectrogram[i][j] = static_cast<uint8_t>(spectrogram[i][j]);
+        }
+    }
+}
+
+
 void MicrophoneHandler::sendSpectrogram() {
+    // normalize to 0 - 255
+    normalizeSpectrogram();
+
+    // sprint all cells
     Serial.println("s");
     for (int i = 0; i < N_O_SAMPLES; i++) {
         for (int j = 0; j < SAMPLE_BUFFER_SIZE; j++) {

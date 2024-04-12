@@ -75,7 +75,7 @@ if __name__ == "__main__":
         p = pyaudio.PyAudio()
         stream = p.open(format=pyaudio.paFloat32,
                         channels=1,
-                        rate=5000,
+                        rate=4000,
                         output=True)
 
         stream.write(one_audio_sample.astype(np.float32).tobytes())

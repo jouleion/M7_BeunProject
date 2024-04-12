@@ -45,11 +45,10 @@ void loop() {
         // signify that the tiny ml is done reading audio
         digitalWrite(pin_led, LOW);
 
-        // send the audio buffer
+        // send the normalized audio buffer
         micHandler.sendAudio();
         
-        // send the spectrogram
-
+        // send the normalized spectrogram
         micHandler.sendSpectrogram();
         
         while (1) {
