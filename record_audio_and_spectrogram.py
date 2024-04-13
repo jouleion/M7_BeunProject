@@ -26,11 +26,11 @@ import csv
 # set true when tiny ml is conected
 tiny_ml_connected = True
 
-def read_serial_data():
+def read_serial_data(buffer_size, number_of_samples):
     # Initialize variables to track the state of the data
     audio_data = []
 
-    spectrogram_data = np.zeros((64, 128))
+    spectrogram_data = np.zeros((number_of_samples, buffer_size))
     row_index = 0
     col_index = 0
 
@@ -84,7 +84,7 @@ def read_serial_data():
                 elif is_spectrogram:
                     # Split the spectrogram data and store it in the spectrogram_data array
                     if "," in data:
-                        if row_index < 63:
+                        if row_index < number_of_samples - 1:
                             try:
                                 row, value = data.split(",")
                                 row = int(re.sub("[^0-9]", "", row))
@@ -93,8 +93,7 @@ def read_serial_data():
 
                                 # increment col index
                                 col_index += 1
-                                if col_index >= 128:
-                                    print("new row in spectrogram")
+                                if col_index >= buffer_size:
                                     col_index = 0
                                     row_index = row
                             except ValueError:
@@ -205,13 +204,14 @@ def plot_audio(audio):
 
 if __name__ == "__main__":
     # set the id of the keyword thats being used
-    keyword_id = 1
+    keyword_id = 5
 
     if tiny_ml_connected:
         tiny_ml_serial = serial.Serial(port='COM5', baudrate=115200, timeout=0.1)
         print("connected to tiny ml")
 
-        audio, spectrogram = read_serial_data()     # made sure to not flip the outputs (crying now)
+        # use the same values as in AudioAndSpectrogramRead (sample_buffer_size, number_of_samples)
+        audio, spectrogram = read_serial_data(128, 128)
 
         print("spectrogram shape")
         print(spectrogram.shape)

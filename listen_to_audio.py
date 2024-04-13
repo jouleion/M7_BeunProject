@@ -67,7 +67,7 @@ if __name__ == "__main__":
         wav_file = wave.open(file_path, 'w')
         wav_file.setnchannels(1)  # Mono audio
         wav_file.setsampwidth(2)  # 2 bytes per sample
-        wav_file.setframerate(1000)  # 9khz
+        wav_file.setframerate(2000)  # 9khz
         wav_file.writeframes(one_audio_sample.tobytes())
         wav_file.close()
 
