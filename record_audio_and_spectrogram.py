@@ -178,6 +178,7 @@ def show_spectrogram(path):
 def plot_spectrogram(spectrogram):
     # plot a spectrogram
     # flip 2d array
+    spectrogram = np.transpose(spectrogram)
     plt.imshow(spectrogram, cmap='viridis')
     plt.colorbar()
 
