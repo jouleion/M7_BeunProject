@@ -156,7 +156,7 @@ def plot_history(history):
     loss = history.history['loss']
     val_loss = history.history['val_loss']
     x_range = range(1, len(history.epoch) + 1)
-    plt.plot(x_range, loss, 'g.', label='training loss')
+    plt.plot(x_range, loss, 'g', label='training loss')
     plt.plot(x_range, val_loss, 'b', label='Validation loss')
     plt.title('training and validation loss')
     plt.xlabel('Epochs')
@@ -170,8 +170,8 @@ def plot_predictions(X_test, actual_values, predictions):
     X_test_2d = X_test.reshape(X_test.shape[0], -1)
 
     plt.clf()
-    plt.plot(X_test_2d[:, 0], actual_values, 'b.', label='Actual')
-    plt.plot(X_test_2d[:, 0], predictions, 'r.', label='Predicted')
+    plt.plot(X_test_2d[:, 0], actual_values, 'b', label='Actual')
+    plt.plot(X_test_2d[:, 0], predictions, 'r', label='Predicted')
     plt.legend()
     plt.show()
 
@@ -201,6 +201,7 @@ def save_model(model, model_is_smart):
     else:
         path = "models/cnn/dumb/model.keras"
     model.save(path)
+
 
 def export_model(model, model_is_smart):
     # Define a path where models are saved
@@ -240,22 +241,26 @@ def convert_to_c_array(model_is_smart):
         model_path = "models/cnn/dumb_lite/model.tflite"
         file_name = "dumb_CNN"
 
-
     # convert to c-array
     convert_tflite_to_c(model_path, file_name, "models/c_arrays")
 
 
 if __name__ == "__main__":
+
+    # print(os.getcwd())
+    # with open("models/c_arrays", "w") as header_file:
+    #     print("hi")
+
     # setup variables
     #     save_new_model will overwrite previous model
     #     model_is_smart is used to use a dumb or smart neural network. smart is used for the later stages
     #     n_of_keywords determines the number of output neurons, dependend on the nummber of classes used
     export_new_model = True
-    model_is_smart = True
-    n_of_keywords = 4
+    model_is_smart = False
+    n_of_keywords = 5
 
     # prepare data
-    X_train, X_test, y_train, y_test = prepare_spectrogram_data(0.2)
+    X_train, X_test, y_train, y_test = prepare_spectrogram_data(0.07)
 
     # print number of training samples
     print("number of training samples:")
@@ -272,10 +277,10 @@ if __name__ == "__main__":
 
     # train model
     max_batch_size = X_train.shape[0]
-    epochs = 70
+    epochs = 110
 
     # epochs, batch_size, validation split
-    model, history = train_model(model, X_train, y_train, epochs, max_batch_size, 0.1)
+    model, history = train_model(model, X_train, y_train, epochs, int(0.5 * max_batch_size), 0.04)
 
     # plot accuray over time
     plot_history(history)
@@ -288,7 +293,7 @@ if __name__ == "__main__":
         convert_to_tf_lite(model_is_smart)
 
         # convert tflite model to c-array
-        convert_to_c_array(model_is_smart)
+        # convert_to_c_array(model_is_smart)        # problems with writing file to a good path
 
     # evaluate new model
     predictions = model.predict(X_test)

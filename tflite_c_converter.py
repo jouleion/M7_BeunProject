@@ -48,7 +48,10 @@ def convert_tflite_to_c(tflite_path: str = 'model.tflite',  model_name: str = 'm
     hex_array = ',\n     '.join(hex_lines)
 
     # prepare the file name in correct path
-    new_file_name = os.path.join(save_path, model_name + '.h')
+    #new_file_name = os.path.join(save_path, model_name + '.h')
+    new_file_name = save_path
+    print("saving c array as")
+    print(new_file_name)
 
     # Open a header file in write mode and write out the TFLite model as an array.
     with open(new_file_name, 'w') as header_file:
