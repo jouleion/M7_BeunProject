@@ -204,7 +204,7 @@ def plot_audio(audio):
 
 if __name__ == "__main__":
     # set the id of the keyword thats being used
-    keyword_id = 5
+    keyword_id = 1
 
     if tiny_ml_connected:
         tiny_ml_serial = serial.Serial(port='COM5', baudrate=115200, timeout=0.1)

@@ -86,9 +86,6 @@ def construct_smart_cnn_model(width, heigth, n_of_classes):
             keras.layers.Conv2D(32, (3, 3), activation='relu', input_shape=(width, heigth, 1)),
             keras.layers.MaxPooling2D((3, 3)),
 
-            keras.layers.Conv2D(32, (3, 3), activation='relu'),
-            keras.layers.MaxPooling2D((2, 2)),
-
             # flatten the output and add the fully connected layers
             keras.layers.Flatten(),
             keras.layers.Dense(32, activation='relu'),
@@ -242,10 +239,12 @@ def convert_to_c_array(model_is_smart):
         file_name = "dumb_CNN"
 
     # convert to c-array
-    convert_tflite_to_c(model_path, file_name, "models/c_arrays")
+    convert_tflite_to_c(model_path, file_name, "arduino sketches/deploy_dumb_cnn/dumb_CNN2.h")
+    print("saved as c-array")
 
 
 if __name__ == "__main__":
+
 
     # print(os.getcwd())
     # with open("models/c_arrays", "w") as header_file:
@@ -256,8 +255,10 @@ if __name__ == "__main__":
     #     model_is_smart is used to use a dumb or smart neural network. smart is used for the later stages
     #     n_of_keywords determines the number of output neurons, dependend on the nummber of classes used
     export_new_model = True
-    model_is_smart = False
+    model_is_smart = True
     n_of_keywords = 5
+
+    convert_to_c_array(model_is_smart)
 
     # prepare data
     X_train, X_test, y_train, y_test = prepare_spectrogram_data(0.07)

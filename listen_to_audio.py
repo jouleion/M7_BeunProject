@@ -53,18 +53,38 @@ def get_audio_data(data_path):
     return X, y
 
 
+def get_single_audio_data(file_path):
+    """
+    Read a single audio data file from the specified path.
+
+    Args:
+        file_path (str): The full path to the CSV file containing the audio data.
+
+    Returns:
+        numpy.ndarray: The audio data read from the CSV file, or None if the file is not in the expected format.
+        int: The label extracted from the filename, or None if the file is not in the expected format.
+    """
+    # Check if the file exists and is a CSV file
+    if os.path.isfile(file_path) and file_path.endswith(".csv"):
+        # Extract the label from the filename
+        filename = os.path.basename(file_path)
+        label = int(filename.split("audio_")[1].split(".")[0])
+        audio_sample = np.genfromtxt(file_path, delimiter=',')
+        return audio_sample, label
+    else:
+        return None, None
+
+
 if __name__ == "__main__":
 
-    if __name__ == "__main__":
-        # Assuming your audio data is in the 'audio_data' variable
-        audio_data = get_audio_data("data")
-        one_audio_sample = np.array(audio_data[0])
-        print(one_audio_sample.shape)
+    input_path = "data/augmentedAudio_1/audio_019.csv"
+    one_audio_sample, label = get_single_audio_data(input_path)
 
-        file_path = 'data/wav/output.wav'
+    if one_audio_sample is not None:
+        output_path = 'data/wav/output.wav'
 
         # Create a WAV file
-        wav_file = wave.open(file_path, 'w')
+        wav_file = wave.open(output_path, 'w')
         wav_file.setnchannels(1)  # Mono audio
         wav_file.setsampwidth(2)  # 2 bytes per sample
         wav_file.setframerate(2000)  # 9khz
@@ -75,7 +95,7 @@ if __name__ == "__main__":
         p = pyaudio.PyAudio()
         stream = p.open(format=pyaudio.paFloat32,
                         channels=1,
-                        rate=4000,
+                        rate=9000,
                         output=True)
 
         stream.write(one_audio_sample.astype(np.float32).tobytes())
@@ -83,3 +103,5 @@ if __name__ == "__main__":
         stream.stop_stream()
         stream.close()
         p.terminate()
+    else:
+        print("Failed to read audio data.")
