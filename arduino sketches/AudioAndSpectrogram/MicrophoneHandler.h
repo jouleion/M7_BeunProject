@@ -17,7 +17,7 @@ public:
     void computeSpectrogramRow();
     void normalizeSpectrogram();
     void sendSpectrogram();
-    
+  
 
 private:
     void doFFT();

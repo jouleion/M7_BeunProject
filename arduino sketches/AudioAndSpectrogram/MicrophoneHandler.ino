@@ -54,6 +54,7 @@ bool MicrophoneHandler::isSpectrogramReady() {
     return false;
 }
 
+
 void MicrophoneHandler::normalizeAudio() {
     // Normalize the audio
     float mean = 0.0f;
