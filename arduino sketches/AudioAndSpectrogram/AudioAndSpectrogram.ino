@@ -19,6 +19,7 @@ MicrophoneHandler micHandler;
 void setup() {
     // start serial communication
     Serial.begin(115200);
+    delay(1000);
 
     // blink LED to indicate start
     pinMode(pin_led, OUTPUT);
